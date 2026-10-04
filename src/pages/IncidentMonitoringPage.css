@@ -1,0 +1,14 @@
+/* Incident monitoring register */
+
+.incident-table {
+  min-width: 1060px;
+}
+
+.incident-table col:nth-child(1) { width: 112px; }
+.incident-table col:nth-child(2) { width: 165px; }
+.incident-table col:nth-child(3) { width: 190px; }
+.incident-table col:nth-child(4) { width: 120px; }
+.incident-table col:nth-child(5) { width: 138px; }
+.incident-table col:nth-child(6) { width: 126px; }
+.incident-table col:nth-child(7) { width: 160px; }
+.incident-table col:nth-child(8) { width: 78px; }

@@ -1,0 +1,121 @@
+/* Application shell: page background layers, main column, footer, loader */
+
+.loading-screen {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  background-color: var(--surface-page);
+  color: var(--slate-100);
+}
+
+.loading-screen__inner {
+  text-align: center;
+}
+
+.loading-screen__spinner {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 1rem;
+  border: 2px solid var(--glass-10);
+  border-top-color: var(--indigo-400);
+  border-radius: var(--radius-full);
+}
+
+.loading-screen__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+
+.app-shell {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  overflow-x: clip;
+  background-color: var(--surface-page);
+  color: var(--slate-100);
+}
+
+.app-shell__bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.app-shell__bg--glow {
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 0%, rgba(67, 56, 202, 0.18), transparent 55%),
+    radial-gradient(ellipse 65% 50% at 100% 10%, rgba(14, 116, 144, 0.12), transparent 56%),
+    linear-gradient(180deg, #050810, #080d1a 45%, #050810);
+}
+
+.app-shell__bg--grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent);
+}
+
+.app-main {
+  position: relative;
+  z-index: 10;
+  min-width: 0;
+  flex: 1 1 0%;
+  padding-bottom: 3rem;
+}
+
+@media (min-width: 1024px) {
+  .app-main {
+    margin-left: 264px;
+  }
+}
+
+.app-content {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .app-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-content {
+    padding: 2rem;
+  }
+}
+
+.app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  border-top: 1px solid var(--glass-8);
+  background-color: rgb(5 8 16 / 0.9);
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-size: 11px;
+  color: var(--slate-500);
+  -webkit-backdrop-filter: blur(var(--blur-xl));
+  backdrop-filter: blur(var(--blur-xl));
+}
+
+.app-footer span {
+  font-weight: 600;
+  color: var(--slate-300);
+}
+
+@media (min-width: 1024px) {
+  .app-footer {
+    left: 264px;
+  }
+}

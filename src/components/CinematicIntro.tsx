@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
+import './CinematicIntro.css'
 
 const CURRENT_YEAR = new Date().getFullYear().toString()
 

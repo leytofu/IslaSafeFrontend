@@ -32,7 +32,7 @@ function buildMockRequest(id: string): SosRequest {
     period: 'today',
     received: 'Just now',
     status: 'Pending',
-    color: 'bg-rose-500/15 text-rose-300',
+    color: 'sos-tile--medical',
     icon: HeartPulse,
   }
 }

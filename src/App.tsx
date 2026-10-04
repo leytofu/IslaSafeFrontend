@@ -1,9 +1,10 @@
 import { useState, type ReactElement } from 'react'
 import './components/table.css'
+import './App.css'
 import { DashboardPage } from './pages/DashboardPage'
 import { Sidebar, type PageName } from './components/Sidebar'
 import { Topbar } from './components/Topbar'
-import { AuthPage } from './pages/AuthPage'
+import { AuthPage, type ResetRequest } from './pages/AuthPage'
 import { HazardMapPage } from './pages/HazardMapPage'
 import { SosManagementPage } from './pages/SosManagementPage'
 import { EvacuationCentersPage } from './pages/EvacuationCentersPage'
@@ -20,13 +21,32 @@ import { useSosRequests } from './hooks/useSosRequests'
 
 function LoadingScreen() {
   return (
-    <div className="grid min-h-screen place-items-center bg-[#050810] text-slate-100">
-      <div className="text-center">
-        <span className="mx-auto mb-4 block size-10 animate-spin rounded-full border-2 border-white/10 border-t-indigo-400" />
-        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">Loading IslaSafe</p>
+    <div className="loading-screen">
+      <div className="loading-screen__inner">
+        <span className="loading-screen__spinner is-spinning" />
+        <p className="loading-screen__label">Loading IslaSafe</p>
       </div>
     </div>
   )
+}
+
+/**
+ * Detects the emailed password-reset link (/reset-password?token=...&email=...).
+ * Returns an object (possibly with empty fields so the UI can explain that the
+ * link is incomplete) whenever the path matches, null otherwise.
+ */
+function readResetRequest(): ResetRequest | null {
+  try {
+    const path = window.location.pathname.replace(/\/+$/, '') || '/'
+    if (path !== '/reset-password') return null
+    const params = new URLSearchParams(window.location.search)
+    return {
+      token: (params.get('token') ?? '').trim(),
+      email: (params.get('email') ?? '').trim(),
+    }
+  } catch {
+    return null
+  }
 }
 
 function App() {
@@ -36,6 +56,13 @@ function App() {
   const [sosAlarmActive, setSosAlarmActive] = useState(false)
   const [isMapOnlyView, setIsMapOnlyView] = useState(false)
   const [selectedSosRequestId, setSelectedSosRequestId] = useState<string | null>(null)
+  const [resetRequest, setResetRequest] = useState<ResetRequest | null>(readResetRequest)
+
+  // Leaves the reset-password URL so a refresh lands back on the normal app.
+  const clearResetRequest = () => {
+    window.history.replaceState({}, '', '/')
+    setResetRequest(null)
+  }
 
   const role: Role = (auth.user?.role ?? 'residents') as Role
   const visiblePages = pagesForRole(role)
@@ -69,6 +96,12 @@ function App() {
   const openSosRequest = (id: string) => {
     navigate('SOS Management')
     setSelectedSosRequestId(id)
+  }
+
+  // A password-reset link wins over every other view — the user may not even
+  // be signed in (or may have an old session) when they open it.
+  if (resetRequest) {
+    return <AuthPage onClearReset={clearResetRequest} onRegister={auth.register} onSignIn={auth.signIn} resetRequest={resetRequest} />
   }
 
   if (auth.status === 'loading') {
@@ -115,15 +148,15 @@ function App() {
 
   return (
     <>
-      <div className="relative flex min-h-screen overflow-x-clip bg-[#050810] text-slate-100">
-        <div className="pointer-events-none fixed inset-0 -z-0 overflow-hidden bg-[radial-gradient(ellipse_80%_60%_at_0%_0%,rgba(67,56,202,0.18),transparent_55%),radial-gradient(ellipse_65%_50%_at_100%_10%,rgba(14,116,144,0.12),transparent_56%),linear-gradient(180deg,#050810,#080d1a_45%,#050810)]" />
-        <div className="pointer-events-none fixed inset-0 -z-0 bg-[linear-gradient(rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px)] bg-size-[44px_44px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,black,transparent)]" />
+      <div className="app-shell">
+        <div className="app-shell__bg app-shell__bg--glow" />
+        <div className="app-shell__bg app-shell__bg--grid" />
         <Sidebar activePage={page} isOpen={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={navigate} onSignOut={auth.signOut} allowedPages={visiblePages} user={auth.user} />
-        <main className="relative z-10 min-w-0 flex-1 pb-12 lg:ml-[264px]">
+        <main className="app-main">
           <Topbar onOpenMenu={() => setMenuOpen(true)} page={page} />
-          <div className="p-4 sm:p-6 lg:p-8">{renderContent()}</div>
+          <div className="app-content">{renderContent()}</div>
         </main>
-        <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-white/8 bg-[#050810]/90 px-4 py-3 text-center text-[11px] text-slate-500 backdrop-blur-xl lg:left-[264px]">Developed by <span className="font-semibold text-slate-300">Four Sisters and a Wedding</span></footer>
+        <footer className="app-footer">Developed by <span>Four Sisters and a Wedding</span></footer>
       </div>
       {alertOverlay}
     </>

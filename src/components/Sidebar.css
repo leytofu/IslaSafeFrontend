@@ -1,0 +1,282 @@
+/* Fixed sidebar navigation (desktop rail + mobile drawer) */
+
+.sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  background-color: color-mix(in oklab, var(--slate-950) 75%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+.sidebar-scrim.is-open {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .sidebar-scrim,
+  .sidebar-scrim.is-open {
+    display: none;
+  }
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 264px;
+  border-right: 1px solid var(--glass-8);
+  background-color: rgb(9 14 28 / 0.95);
+  padding: 1.25rem 1rem;
+  box-shadow: 0 25px 50px -12px color-mix(in oklab, var(--black) 50%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur-2xl));
+  backdrop-filter: blur(var(--blur-2xl));
+  translate: -100% 0;
+  transition: translate 0.3s var(--ease-default);
+}
+
+.sidebar.is-open {
+  translate: 0 0;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    translate: 0 0;
+  }
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--glass-8);
+  padding: 0 0.5rem 1.25rem;
+}
+
+.sidebar__brand-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--indigo-300) 30%, transparent);
+  border-radius: var(--radius-xl);
+  background-image: linear-gradient(to bottom right, var(--indigo-500), var(--blue-600), var(--cyan-500));
+  box-shadow:
+    0 10px 15px -3px color-mix(in oklab, var(--indigo-950) 60%, transparent),
+    0 4px 6px -4px color-mix(in oklab, var(--indigo-950) 60%, transparent);
+}
+
+.sidebar__brand-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--white);
+}
+
+.sidebar__brand-name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: var(--text-lg-lh);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--white);
+}
+
+.sidebar__brand-tag {
+  margin-top: 0.125rem;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--slate-500);
+}
+
+.sidebar__nav {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.nav-group {
+  margin-bottom: 1.25rem;
+}
+
+.nav-group__title {
+  margin-bottom: 0.5rem;
+  padding-inline: 0.75rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+
+.nav-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xl);
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  transition: var(--transition-default);
+}
+
+.nav-item:not(.is-danger):not(.is-active) {
+  color: var(--slate-400);
+}
+
+.nav-item:not(.is-danger):not(.is-active):hover {
+  translate: 0.125rem 0;
+  background-color: var(--glass-5);
+  color: var(--slate-100);
+}
+
+.nav-item.is-danger {
+  border-color: color-mix(in oklab, var(--rose-400) 25%, transparent);
+  background-color: color-mix(in oklab, var(--rose-500) 8%, transparent);
+  color: var(--slate-100);
+}
+
+.nav-item.is-danger:hover {
+  border-color: color-mix(in oklab, var(--rose-300) 40%, transparent);
+  background-color: color-mix(in oklab, var(--rose-500) 15%, transparent);
+}
+
+.nav-item.is-active {
+  border-color: color-mix(in oklab, var(--indigo-400) 35%, transparent);
+  background-image: linear-gradient(
+    to right,
+    color-mix(in oklab, var(--indigo-500) 20%, transparent),
+    color-mix(in oklab, var(--blue-500) 10%, transparent)
+  );
+  color: var(--white);
+  box-shadow:
+    0 10px 15px -3px color-mix(in oklab, var(--indigo-950) 25%, transparent),
+    0 4px 6px -4px color-mix(in oklab, var(--indigo-950) 25%, transparent);
+}
+
+.nav-item.is-active.is-danger {
+  border-color: color-mix(in oklab, var(--rose-400) 45%, transparent);
+  background-image: none;
+  background-color: color-mix(in oklab, var(--rose-500) 15%, transparent);
+  box-shadow:
+    0 10px 15px -3px color-mix(in oklab, var(--rose-950) 30%, transparent),
+    0 4px 6px -4px color-mix(in oklab, var(--rose-950) 30%, transparent);
+}
+
+.nav-item__icon {
+  width: 18px;
+  height: 18px;
+  color: var(--slate-400);
+}
+
+.nav-item.is-danger .nav-item__icon {
+  color: var(--rose-400);
+}
+
+.nav-item.is-active:not(.is-danger) .nav-item__icon {
+  color: var(--indigo-300);
+}
+
+.nav-item:not(.is-danger):not(.is-active):hover .nav-item__icon {
+  color: var(--slate-200);
+}
+
+.nav-item__label {
+  min-width: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-item__badge {
+  border-radius: var(--radius-full);
+  background-color: var(--rose-500);
+  padding: 0.125rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.nav-item.is-danger .nav-item__badge {
+  box-shadow: 0 0 16px rgb(244 63 94 / 0.7);
+}
+
+.sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--glass-8);
+  padding: 1rem 0.5rem 0;
+}
+
+.sidebar__user-avatar {
+  display: grid;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 2px solid var(--glass-20);
+  border-radius: var(--radius-full);
+  background-image: linear-gradient(to bottom right, var(--violet-400), var(--blue-500));
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 700;
+  color: var(--white);
+}
+
+.sidebar__user-meta {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+
+.sidebar__user-name {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate-100);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__user-role {
+  display: block;
+  font-size: 10px;
+  color: var(--slate-500);
+}
+
+.sidebar__signout {
+  display: grid;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--glass-10);
+  border-radius: var(--radius-lg);
+  color: var(--slate-400);
+  transition: var(--transition-default);
+}
+
+.sidebar__signout:hover {
+  border-color: color-mix(in oklab, var(--rose-400) 40%, transparent);
+  background-color: color-mix(in oklab, var(--rose-500) 10%, transparent);
+  color: var(--rose-200);
+}
+
+.sidebar__signout svg {
+  width: 1rem;
+  height: 1rem;
+}

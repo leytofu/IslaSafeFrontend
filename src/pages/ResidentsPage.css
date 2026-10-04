@@ -1,0 +1,19 @@
+/* Resident records directory */
+
+.resident-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.resident-select {
+  height: 2.25rem;
+  border: 1px solid var(--glass-10);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-select);
+  padding: 0 0.75rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  color: var(--slate-300);
+  outline: none;
+}

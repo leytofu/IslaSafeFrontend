@@ -1,0 +1,454 @@
+/* Hazard map page: controls, map panel, side rail */
+
+.hazard-map-only {
+  height: 100vh;
+  background-color: var(--surface-map);
+}
+
+.hazard-layout {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 1536px) {
+  .hazard-layout {
+    grid-template-columns: minmax(0, 1fr) 310px;
+  }
+}
+
+.hazard-map-panel {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .hazard-map-panel {
+    padding: 1.25rem;
+  }
+}
+
+.hazard-heading-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+/* Control strip */
+.hazard-controls {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--glass-8);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-25);
+  padding: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .hazard-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .hazard-controls {
+    grid-template-columns: 1fr 1fr auto;
+  }
+}
+
+.hazard-select-wrap {
+  position: relative;
+  display: block;
+}
+
+.hazard-select-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  width: 0.875rem;
+  height: 0.875rem;
+  pointer-events: none;
+  translate: 0 -50%;
+  color: var(--slate-500);
+}
+
+.hazard-select-icon--dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: var(--radius-sm);
+}
+
+.hazard-select {
+  width: 100%;
+  height: 2.5rem;
+  border: 1px solid var(--glass-10);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-select);
+  padding: 0 0.75rem 0 2.25rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  color: var(--slate-200);
+  outline: none;
+}
+
+.hazard-select:focus {
+  border-color: color-mix(in oklab, var(--indigo-400) 50%, transparent);
+}
+
+.hazard-select--dot {
+  padding-left: 2rem;
+}
+
+.hazard-reset-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+/* Selected feature readout */
+.hazard-selection {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  border: 1px solid color-mix(in oklab, var(--indigo-400) 15%, transparent);
+  border-radius: var(--radius-xl);
+  background-color: color-mix(in oklab, var(--indigo-500) 7%, transparent);
+  padding: 0.875rem;
+}
+
+.hazard-selection__icon {
+  display: grid;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--indigo-400) 15%, transparent);
+  color: var(--indigo-200);
+}
+
+.hazard-selection__icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.hazard-selection__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--indigo-300);
+}
+
+.hazard-selection__text {
+  margin-top: 0.25rem;
+  font-size: var(--text-xs);
+  line-height: 1.25rem;
+  color: var(--indigo-100);
+}
+
+/* Operational updates */
+.hazard-updates {
+  margin-top: 1rem;
+  border: 1px solid var(--glass-8);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-25);
+  padding: 1rem;
+}
+
+.hazard-updates__grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .hazard-updates__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.hazard-update-card {
+  border: 1px solid var(--glass-8);
+  border-radius: var(--radius-lg);
+  background-color: rgb(11 17 32 / 0.55);
+  padding: 0.75rem;
+}
+
+.hazard-update-card__title {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-100);
+}
+
+.hazard-update-card__meta {
+  margin-top: 0.25rem;
+  font-size: 10px;
+  color: var(--slate-500);
+}
+
+.hazard-update-card__status {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+/* Side rail */
+.hazard-aside {
+  display: block;
+}
+
+.hazard-layer {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--radius-lg);
+  padding: 0.5rem;
+  text-align: left;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  transition: var(--transition-default);
+}
+
+.hazard-layer:not(.is-on) {
+  color: var(--slate-500);
+}
+
+.hazard-layer:not(.is-on):hover {
+  background-color: var(--glass-35);
+  color: var(--slate-300);
+}
+
+.hazard-layer.is-on {
+  background-color: rgb(255 255 255 / 0.055);
+  color: var(--slate-100);
+}
+
+.hazard-layer__check {
+  display: grid;
+  width: 1rem;
+  height: 1rem;
+  place-items: center;
+  border: 1px solid var(--glass-20);
+  border-radius: var(--radius-sm);
+  background-color: var(--glass-5);
+  color: transparent;
+  transition: var(--transition-default);
+}
+
+.hazard-layer__check.is-on {
+  border-color: var(--indigo-400);
+  background-color: var(--indigo-500);
+  color: var(--white);
+}
+
+.hazard-layer__check svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.hazard-layer__dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: var(--radius-sm);
+}
+
+.hazard-layer__label {
+  flex: 1 1 0%;
+}
+
+.hazard-exposure {
+  border: 1px solid var(--glass-8);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-3);
+  padding: 0.75rem;
+}
+
+.hazard-exposure__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hazard-exposure__dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.hazard-exposure__name {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-100);
+}
+
+.hazard-exposure__detail {
+  margin-top: 0.5rem;
+  font-size: 11px;
+  line-height: 1rem;
+  color: var(--slate-400);
+}
+
+/* Priority alerts */
+.hazard-alert {
+  border-bottom: 1px solid var(--glass-8);
+  padding: 0.75rem 0;
+}
+
+.hazard-alert:first-child {
+  padding-top: 0;
+}
+
+.hazard-alert:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.hazard-alert__row {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.hazard-alert__icon {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  color: var(--indigo-300);
+}
+
+.hazard-alert--danger .hazard-alert__icon {
+  color: var(--rose-400);
+}
+
+.hazard-alert--warning .hazard-alert__icon {
+  color: var(--amber-300);
+}
+
+.hazard-alert__body {
+  min-width: 0;
+}
+
+.hazard-alert__title {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-100);
+}
+
+.hazard-alert__detail {
+  margin-top: 0.25rem;
+  font-size: 10px;
+  line-height: 1rem;
+  color: var(--slate-500);
+}
+
+.hazard-alert__time {
+  margin-top: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--slate-600);
+}
+
+/* Mapped hazard zones */
+.hazard-zone {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--glass-8);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 0;
+  text-align: left;
+  transition: var(--transition-default);
+}
+
+.hazard-zone:first-child {
+  padding-top: 0;
+}
+
+.hazard-zone:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.hazard-zone:hover {
+  background-color: var(--glass-35);
+}
+
+.hazard-zone__dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+}
+
+.hazard-zone__dot--critical {
+  background-color: var(--rose-500);
+}
+
+.hazard-zone__dot--moderate {
+  background-color: var(--amber-400);
+}
+
+.hazard-zone__dot--high {
+  background-color: var(--violet-400);
+}
+
+.hazard-zone__body {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+
+.hazard-zone__name {
+  display: block;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-100);
+}
+
+.hazard-zone__meta {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 10px;
+  line-height: 1rem;
+  color: var(--slate-500);
+}
+
+.hazard-zone__aside {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hazard-zone__chevron {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-top: 0.125rem;
+  color: var(--slate-600);
+}
+
+/* Helper tip */
+.hazard-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid var(--glass-8);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-25);
+  padding: 0.75rem;
+  font-size: 10px;
+  line-height: 1rem;
+  color: var(--slate-500);
+}
+
+.hazard-tip svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  color: var(--slate-400);
+}

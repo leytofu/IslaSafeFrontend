@@ -1,0 +1,180 @@
+/* Cinematic brand intro shown on the auth screen */
+
+.cinematic-intro {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 820px 620px at 50% 28%, rgb(67 56 202 / 0.2), transparent 65%),
+    radial-gradient(ellipse 720px 720px at 88% 84%, rgb(14 116 144 / 0.12), transparent 60%),
+    linear-gradient(180deg, #050810, #080d1a 55%, #050810);
+  opacity: 1;
+  transition: opacity 520ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cinematic-intro-leaving {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.cinematic-intro-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.42;
+  animation: cinematic-intro-drift 14s ease-in-out infinite;
+}
+
+.cinematic-intro-blob-one {
+  top: -110px;
+  left: -90px;
+  width: 420px;
+  height: 420px;
+  background: #4338ca;
+}
+
+.cinematic-intro-blob-two {
+  right: -70px;
+  bottom: -130px;
+  width: 340px;
+  height: 340px;
+  background: #0e7490;
+  animation-delay: -6s;
+}
+
+.cinematic-intro-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  max-width: 92vw;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.cinematic-intro-morph-stage {
+  position: relative;
+  display: grid;
+  min-width: min(510px, 90vw);
+  min-height: clamp(64px, 11vw, 126px);
+  place-items: center;
+}
+
+.cinematic-intro-brand,
+.cinematic-intro-year {
+  grid-area: 1 / 1;
+  margin: 0;
+  font-family: "Arial Rounded MT Bold", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(54px, 10vw, 118px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.cinematic-intro-brand {
+  display: flex;
+  color: #eef3f9;
+  opacity: 0;
+  transform: translateY(13px) scale(0.96);
+  transition: opacity 520ms ease, transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cinematic-intro-brand > span {
+  display: inline-block;
+  transition: opacity 650ms ease var(--intro-letter-delay), transform 700ms cubic-bezier(0.16, 0.84, 0.44, 1) var(--intro-letter-delay), filter 600ms ease var(--intro-letter-delay);
+}
+
+.cinematic-intro-brand.intro-brand-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.cinematic-intro-brand.intro-brand-morphing {
+  transform: translateY(-8px) scale(0.9);
+}
+
+.cinematic-intro-brand.intro-brand-morphing > span {
+  filter: blur(9px);
+  opacity: 0;
+  transform: translateY(-12px) scaleX(0.38) scaleY(0.55) rotate(-4deg);
+}
+
+.cinematic-intro-year {
+  display: flex;
+  gap: clamp(2px, 0.8vw, 10px);
+  color: #fff;
+  opacity: 0;
+  transform: translateY(10px) scale(0.78);
+  filter: blur(12px);
+  transition: opacity 420ms ease, transform 850ms cubic-bezier(0.16, 0.84, 0.44, 1), filter 650ms ease;
+}
+
+.cinematic-intro-year.intro-year-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+.intro-year-digit {
+  display: flex;
+  opacity: 0;
+  transform: translateY(18px) scale(0.45, 0.35) rotate(7deg);
+  filter: blur(10px);
+  transition: opacity 620ms ease var(--intro-digit-delay), transform 800ms cubic-bezier(0.16, 0.84, 0.44, 1) var(--intro-digit-delay), filter 620ms ease var(--intro-digit-delay);
+}
+
+.intro-year-visible .intro-year-digit {
+  filter: blur(0);
+  opacity: 1;
+  transform: translateY(0) scale(1) rotate(0);
+}
+
+.intro-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.cinematic-intro-line {
+  width: min(260px, 60vw);
+  height: 2px;
+  margin: 24px 0 16px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.1);
+}
+
+.cinematic-intro-line > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4338ca, #fff);
+  transition: width 1100ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.cinematic-intro-line > .intro-finished { width: 100%; }
+
+.cinematic-intro-tagline {
+  margin: 0;
+  color: #7f8ea6;
+  font-size: clamp(11px, 1.4vw, 13px);
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+
+@keyframes cinematic-intro-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -22px) scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-intro { display: none; }
+}

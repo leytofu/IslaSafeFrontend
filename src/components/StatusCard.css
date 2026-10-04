@@ -1,0 +1,128 @@
+/* Dashboard KPI card */
+
+.status-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--glass-9);
+  border-radius: var(--radius-2xl);
+  background-color: var(--glass-45);
+  padding: 1.25rem;
+  text-align: left;
+  box-shadow:
+    0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+  transition: var(--transition-default);
+  transition-duration: 0.3s;
+}
+
+.status-card:hover {
+  translate: 0 -0.25rem;
+  border-color: var(--glass-18);
+  background-color: var(--glass-7);
+}
+
+.status-card--rose {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--rose-400) 25%, transparent),
+    0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.status-card--rose:hover {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--rose-300) 45%, transparent),
+    0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.status-card__orb {
+  position: absolute;
+  bottom: -2.5rem;
+  right: -2rem;
+  width: 7rem;
+  height: 7rem;
+  border-radius: var(--radius-full);
+  background-color: color-mix(in oklab, var(--indigo-500) 10%, transparent);
+  filter: blur(var(--blur-3xl));
+}
+
+.status-card--rose .status-card__orb {
+  background-color: color-mix(in oklab, var(--rose-500) 15%, transparent);
+}
+
+.status-card__row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.status-card__label {
+  display: block;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-400);
+}
+
+.status-card__value {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  line-height: var(--text-4xl-lh);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+.status-card--rose .status-card__value { color: var(--rose-400); }
+.status-card--amber .status-card__value { color: var(--amber-300); }
+.status-card--indigo .status-card__value { color: var(--indigo-300); }
+.status-card--blue .status-card__value { color: var(--blue-300); }
+
+.status-card__icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: var(--radius-xl);
+}
+
+.status-card__icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.status-card--rose .status-card__icon {
+  background-color: color-mix(in oklab, var(--rose-500) 15%, transparent);
+  color: var(--rose-400);
+}
+
+.status-card--amber .status-card__icon {
+  background-color: color-mix(in oklab, var(--amber-400) 15%, transparent);
+  color: var(--amber-300);
+}
+
+.status-card--indigo .status-card__icon {
+  background-color: color-mix(in oklab, var(--indigo-500) 15%, transparent);
+  color: var(--indigo-300);
+}
+
+.status-card--blue .status-card__icon {
+  background-color: color-mix(in oklab, var(--blue-500) 15%, transparent);
+  color: var(--blue-300);
+}
+
+.status-card__change {
+  position: relative;
+  display: block;
+  margin-top: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.status-card--rose .status-card__change { color: var(--rose-300); }
+.status-card--amber .status-card__change { color: var(--amber-300); }
+.status-card--indigo .status-card__change { color: var(--emerald-300); }
+.status-card--blue .status-card__change { color: var(--slate-500); }

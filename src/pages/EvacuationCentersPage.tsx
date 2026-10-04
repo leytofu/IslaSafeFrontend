@@ -4,6 +4,7 @@ import { AddEvacuationCenterDialog } from '../components/AddEvacuationCenterDial
 import { EvacuationCenterCard } from '../components/EvacuationCenterCard'
 import { initialEvacuationCenters, type EvacuationCenter } from '../data/evacuationCenters'
 import { SearchField } from '../components/SearchField'
+import './EvacuationCentersPage.css'
 
 export function EvacuationCentersPage() {
   const [query, setQuery] = useState('')
@@ -11,5 +12,5 @@ export function EvacuationCentersPage() {
   const [isAdding, setIsAdding] = useState(false)
   const visibleCenters = centers.filter((center) => `${center.name} ${center.barangay}`.toLowerCase().includes(query.toLowerCase()))
   const addCenter = (center: EvacuationCenter) => { setCenters((current) => [center, ...current]); setIsAdding(false) }
-  return <div className="mx-auto w-full max-w-[1600px] space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><SearchField onChange={setQuery} placeholder="Search evacuation centers..." value={query} /><button className="action-button-primary" onClick={() => setIsAdding(true)} type="button"><Plus className="size-3.5" /> Add center</button></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visibleCenters.map((center) => <EvacuationCenterCard center={center} key={center.name} />)}</div>{isAdding && <AddEvacuationCenterDialog onClose={() => setIsAdding(false)} onSave={addCenter} />}</div>
+  return <div className="page stack-5"><div className="evac-toolbar"><SearchField onChange={setQuery} placeholder="Search evacuation centers..." value={query} /><button className="action-button-primary" onClick={() => setIsAdding(true)} type="button"><Plus className="action-button__icon" /> Add center</button></div><div className="evac-grid">{visibleCenters.map((center) => <EvacuationCenterCard center={center} key={center.name} />)}</div>{isAdding && <AddEvacuationCenterDialog onClose={() => setIsAdding(false)} onSave={addCenter} />}</div>
 }

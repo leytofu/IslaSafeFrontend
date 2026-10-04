@@ -6,6 +6,7 @@ import { environment } from '../config/environment'
 import { BasemapToggle, type BasemapKey } from './BasemapToggle'
 import { createCirclePolygon, createRasterStyle, setGeoJsonData, toLngLat, toLngLatBounds, updateRasterTiles, type MapCoordinate } from '../utils/maplibre'
 import { mapLayers, urbanHazards, type MapLayerKey, type UrbanHazard } from '../data/mapLayers'
+import './LiveMap.css'
 
 // President Carlos P. Garcia is centred on Lapinig Island, Bohol.
 // These bounds keep the map focused on the municipality instead of the wider province.
@@ -72,7 +73,7 @@ function MapLegend({ activeLayers, hazard, hazardColor }: { activeLayers: MapLay
     { label: 'Safe route', color: '#818cf8', visible: isVisible('routes') },
   ].filter((item) => item.visible)
   if (items.length === 0) return null
-  return <div className="pointer-events-none absolute bottom-[76px] right-3 z-10 w-44 rounded-xl border border-white/10 bg-slate-950/85 p-3 shadow-xl backdrop-blur-md"><p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Visible on map</p><div className="space-y-1.5">{items.map((item) => <p className="flex items-center gap-2 text-[10px] text-slate-200" key={item.label}><span className="size-2.5 rounded-sm" style={{ backgroundColor: item.color }} />{item.label}</p>)}</div></div>
+  return <div className="live-map__legend live-map__overlay"><p className="live-map__overlay-title">Visible on map</p><div className="stack-1.5">{items.map((item) => <p className="live-map__legend-item" key={item.label}><span className="live-map__legend-dot" style={{ backgroundColor: item.color }} />{item.label}</p>)}</div></div>
 }
 
 interface LiveMapProps {
@@ -95,7 +96,7 @@ export function LiveMap({ full = false, fullScreen = false, visibleLayers = [], 
   const active = (layer: MapLayerKey) => visibleLayers.includes(layer)
   const exposure = urbanHazards.find((hazard) => hazard.key === urbanHazard) ?? urbanHazards[0]
   const selectedBasemap = basemaps[basemap]
-  const mapContainerClass = fullScreen ? 'h-screen' : `rounded-xl border border-white/10 ${full ? 'h-[600px] min-h-[460px]' : 'h-[370px]'}`
+  const mapContainerClass = fullScreen ? 'live-map--screen' : full ? 'live-map--full' : 'live-map--compact'
   const mapMaximumZoom = full ? fullMapMaximumZoom : environment.map.maxZoom
 
   useEffect(() => { featureSelectRef.current = onFeatureSelect }, [onFeatureSelect])
@@ -186,13 +187,13 @@ export function LiveMap({ full = false, fullScreen = false, visibleLayers = [], 
     labelMarkersRef.current = full && visibleLayers.includes('barangays') ? barangayLabels.map(({ name, position }) => createMapLabel(map, position, name)) : []
   }, [full, isReady, visibleLayers])
 
-  return <div className={`relative overflow-hidden bg-[#07101d] ${mapContainerClass}`}>
-    <div aria-label="Interactive CPG hazard map" className="islasafe-map h-full w-full" ref={containerRef} role="application" />
+  return <div className={`live-map ${mapContainerClass}`}>
+    <div aria-label="Interactive CPG hazard map" className="islasafe-map live-map__canvas" ref={containerRef} role="application" />
     <BasemapToggle onChange={setBasemap} value={basemap} />
-    {!full && visibleLayers.length > 0 && <div className="pointer-events-none absolute left-3 top-14 z-10 rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2.5 shadow-xl backdrop-blur-md"><p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Map layers</p><div className="space-y-1 text-[10px] text-slate-300">{mapLayers.filter((layer) => active(layer.key)).map((layer) => <p className="flex items-center gap-2" key={layer.key}><span className="size-2 rounded-sm" style={{ backgroundColor: layer.color }} /> {layer.label}</p>)}</div></div>}
+    {!full && visibleLayers.length > 0 && <div className="live-map__layers live-map__overlay"><p className="live-map__overlay-title">Map layers</p><div className="live-map__layers-list stack-1">{mapLayers.filter((layer) => active(layer.key)).map((layer) => <p className="live-map__layers-item" key={layer.key}><span className="live-map__layer-dot" style={{ backgroundColor: layer.color }} /> {layer.label}</p>)}</div></div>}
     {full && <MapLegend activeLayers={visibleLayers} hazard={urbanHazard} hazardColor={exposure.color} />}
-    {fullScreen && onMinimize && <button className="absolute left-3 top-14 z-10 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-slate-950/90 px-3 py-2 text-xs font-semibold text-slate-100 shadow-xl backdrop-blur-md transition hover:bg-white/10" onClick={onMinimize} type="button"><Minimize2 className="size-3.5" /> Minimize</button>}
-    <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-slate-950/80 px-2.5 py-2 font-mono text-[10px] text-emerald-300 shadow-xl backdrop-blur-md"><span className="relative size-2 rounded-full bg-emerald-400 before:absolute before:-inset-1 before:animate-ping before:rounded-full before:bg-emerald-400/60" />LIVE DATA</div>
-    <div className="pointer-events-none absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2.5 text-xs text-slate-300 shadow-xl backdrop-blur-md">{full ? <MapPinned className="size-4 text-indigo-300" /> : <Crosshair className="size-4 text-indigo-300" />}{full ? 'CPG island · 23 barangays monitored' : 'CPG island overview'}</div>
+    {fullScreen && onMinimize && <button className="live-map__minimize" onClick={onMinimize} type="button"><Minimize2 /> Minimize</button>}
+    <div className="live-map__live"><span className="live-map__live-dot" />LIVE DATA</div>
+    <div className="live-map__context">{full ? <MapPinned /> : <Crosshair />}{full ? 'CPG island · 23 barangays monitored' : 'CPG island overview'}</div>
   </div>
 }

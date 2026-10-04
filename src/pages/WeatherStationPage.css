@@ -1,0 +1,135 @@
+/* Automated weather station page */
+
+.weather-layout {
+  display: grid;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+@media (min-width: 1280px) {
+  .weather-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(330px, 1fr);
+  }
+}
+
+.weather-readings {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .weather-readings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .weather-readings {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.weather-reading {
+  border: 1px solid var(--glass-8);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-35);
+  padding: 1rem;
+}
+
+.weather-reading__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--slate-500);
+}
+
+.weather-reading__label {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+}
+
+.weather-reading__icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--indigo-300);
+}
+
+.weather-reading__value {
+  margin-top: 0.75rem;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: var(--text-xl-lh);
+  font-weight: 600;
+  color: var(--slate-100);
+}
+
+/* PAG-ASA advisory callout */
+.weather-advisory {
+  border-left: 3px solid var(--rose-500);
+  border-radius: var(--radius-xl);
+  background-color: color-mix(in oklab, var(--rose-500) 8%, transparent);
+  padding: 1rem;
+}
+
+.weather-advisory__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm-lh);
+  font-weight: 600;
+  color: var(--rose-100);
+}
+
+.weather-advisory__title svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--rose-400);
+}
+
+.weather-advisory__time {
+  margin-top: 0.375rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: color-mix(in oklab, var(--rose-200) 60%, transparent);
+}
+
+.weather-advisory__text {
+  margin-top: 0.75rem;
+  font-size: var(--text-xs);
+  line-height: 1.25rem;
+  color: var(--slate-300);
+}
+
+/* Status / contact rows */
+.weather-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--glass-8);
+  padding: 0.75rem 0;
+}
+
+.weather-row:last-child {
+  border-bottom: none;
+}
+
+.weather-row__title {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-200);
+}
+
+.weather-row__detail {
+  margin-top: 0.25rem;
+  font-size: 10px;
+  color: var(--slate-500);
+}
+
+.weather-row__detail--mono {
+  font-family: var(--font-mono);
+}

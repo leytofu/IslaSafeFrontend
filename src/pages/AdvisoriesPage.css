@@ -1,0 +1,19 @@
+/* Advisories: table + compose form */
+
+.advisories-layout {
+  display: grid;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+@media (min-width: 1280px) {
+  .advisories-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+.advisory-form {
+  height: fit-content;
+}

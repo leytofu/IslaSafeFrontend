@@ -1,0 +1,20 @@
+/* SOS management: KPI tiles, filters, request queue table */
+
+.metric-unit {
+  margin-left: 0.25rem;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm-lh);
+}
+
+.sos-table {
+  min-width: 1080px;
+}
+
+.sos-table col:nth-child(1) { width: 132px; }
+.sos-table col:nth-child(2) { width: 205px; }
+.sos-table col:nth-child(3) { width: 185px; }
+.sos-table col:nth-child(4) { width: 175px; }
+.sos-table col:nth-child(5) { width: 142px; }
+.sos-table col:nth-child(6) { width: 120px; }
+.sos-table col:nth-child(7) { width: 126px; }
+.sos-table col:nth-child(8) { width: 132px; }

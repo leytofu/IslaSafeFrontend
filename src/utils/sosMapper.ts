@@ -17,9 +17,9 @@ export interface ApiSosRecord {
 }
 
 const categoryStyles: Record<SosCategory, { color: string; icon: LucideIcon }> = {
-  Medical: { color: 'bg-rose-500/15 text-rose-300', icon: HeartPulse },
-  'Flood assistance': { color: 'bg-amber-400/15 text-amber-200', icon: Waves },
-  Evacuation: { color: 'bg-indigo-500/15 text-indigo-200', icon: HeartPulse },
+  Medical: { color: 'sos-tile--medical', icon: HeartPulse },
+  'Flood assistance': { color: 'sos-tile--flood', icon: Waves },
+  Evacuation: { color: 'sos-tile--evacuation', icon: HeartPulse },
 }
 
 function startOfDay(date: Date): number {

@@ -1,0 +1,310 @@
+/* SOS request detail dialog */
+
+.sos-detail__header {
+  position: relative;
+  overflow: hidden;
+  background-image:
+    radial-gradient(circle at 88% 0%, rgb(99 102 241 / 0.24), transparent 42%),
+    linear-gradient(135deg, rgb(30 41 59 / 0.95), rgb(11 18 34 / 0.98));
+}
+
+.sos-detail__header-orb {
+  position: absolute;
+  right: -1.75rem;
+  top: -2rem;
+  width: 7rem;
+  height: 7rem;
+  border: 1px solid color-mix(in oklab, var(--indigo-300) 10%, transparent);
+  border-radius: var(--radius-full);
+  background-color: color-mix(in oklab, var(--indigo-400) 5%, transparent);
+}
+
+.sos-detail__header-content {
+  position: relative;
+  display: flex;
+  flex: 1 1 0%;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sos-detail__identity {
+  min-width: 0;
+}
+
+.sos-detail__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sos-detail__id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  color: var(--indigo-200);
+}
+
+.sos-detail__title {
+  margin-top: 0.5rem;
+}
+
+.sos-detail__status {
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0.125rem 0.5rem;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sos-detail__status--resolved {
+  border-color: color-mix(in oklab, var(--emerald-400) 30%, transparent);
+  background-color: color-mix(in oklab, var(--emerald-400) 10%, transparent);
+  color: var(--emerald-200);
+}
+
+.sos-detail__status--coming {
+  border-color: color-mix(in oklab, var(--sky-400) 30%, transparent);
+  background-color: color-mix(in oklab, var(--sky-400) 10%, transparent);
+  color: var(--sky-100);
+}
+
+.sos-detail__status--pending {
+  border-color: color-mix(in oklab, var(--rose-400) 30%, transparent);
+  background-color: color-mix(in oklab, var(--rose-500) 10%, transparent);
+  color: var(--rose-100);
+}
+
+/* Requester summary card */
+.sos-detail__request {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid var(--glass-10);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-35);
+  padding: 1rem;
+}
+
+.sos-detail__request .sos-tile svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.sos-detail__request-body {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+
+.sos-detail__request-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sos-detail__request-name {
+  font-size: var(--text-sm);
+  line-height: var(--text-sm-lh);
+  font-weight: 600;
+  color: var(--white);
+}
+
+.sos-detail__request-contact {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  color: var(--slate-400);
+}
+
+.sos-detail__request-contact svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.sos-detail__priority {
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0.25rem 0.625rem;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sos-detail__priority--critical {
+  border-color: color-mix(in oklab, var(--rose-400) 30%, transparent);
+  background-color: color-mix(in oklab, var(--rose-500) 15%, transparent);
+  color: var(--rose-100);
+}
+
+.sos-detail__priority--high {
+  border-color: color-mix(in oklab, var(--amber-400) 30%, transparent);
+  background-color: color-mix(in oklab, var(--amber-400) 15%, transparent);
+  color: var(--amber-100);
+}
+
+.sos-detail__priority--medium {
+  border-color: color-mix(in oklab, var(--indigo-400) 30%, transparent);
+  background-color: color-mix(in oklab, var(--indigo-500) 15%, transparent);
+  color: var(--indigo-100);
+}
+
+/* Location card */
+.sos-detail__location {
+  overflow: hidden;
+  border: 1px solid var(--glass-10);
+  border-radius: var(--radius-xl);
+}
+
+.sos-detail__location-header,
+.sos-detail__location-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--glass-25);
+  padding: 0.625rem 0.875rem;
+}
+
+.sos-detail__location-header {
+  border-bottom: 1px solid var(--glass-8);
+}
+
+.sos-detail__location-footer {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-top: 1px solid var(--glass-8);
+}
+
+.sos-detail__box-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--slate-300);
+}
+
+.sos-detail__box-title svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--indigo-300);
+}
+
+.sos-detail__location-gis {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--slate-500);
+}
+
+.sos-detail__location-name {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  color: var(--slate-300);
+}
+
+.sos-detail__location-coords {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--slate-500);
+}
+
+.sos-detail__map {
+  position: relative;
+  width: 100%;
+  height: 11rem;
+}
+
+.sos-detail__map-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Fact tiles */
+.sos-detail__facts {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .sos-detail__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sos-detail__fact {
+  border: 1px solid var(--glass-8);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-25);
+  padding: 0.75rem;
+}
+
+.sos-detail__fact-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+
+.sos-detail__fact-label svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.sos-detail__fact-value {
+  margin-top: 0.5rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-100);
+}
+
+.sos-detail__fact-hint {
+  margin-top: 0.25rem;
+  font-size: 10px;
+  color: var(--slate-500);
+}
+
+/* Description card */
+.sos-detail__description {
+  border: 1px solid var(--glass-8);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-25);
+  padding: 1rem;
+}
+
+.sos-detail__description-text {
+  margin-top: 0.75rem;
+  font-size: var(--text-xs);
+  line-height: 1.25rem;
+  color: var(--slate-300);
+}
+
+/* Footer actions */
+.sos-detail__footer {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.75rem;
+  border-top: 1px solid var(--glass-10);
+  background-color: var(--surface-dialog);
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .sos-detail__footer {
+    padding-inline: 1.5rem;
+  }
+}

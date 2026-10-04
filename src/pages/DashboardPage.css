@@ -1,0 +1,58 @@
+/* Dashboard: KPI tiles, live map panel, response column */
+
+.dashboard-main {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 1280px) {
+  .dashboard-main {
+    grid-template-columns: minmax(0, 2.05fr) minmax(320px, 1fr);
+  }
+}
+
+.dashboard-map-panel {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .dashboard-map-panel {
+    padding: 1.25rem;
+  }
+}
+
+.dashboard-map__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-map__title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  line-height: var(--text-base-lh);
+  font-weight: 600;
+  color: var(--white);
+}
+
+.dashboard-map__subtitle {
+  margin-top: 0.25rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  color: var(--slate-500);
+}
+
+.dashboard-map__open {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--indigo-300);
+  transition: var(--transition-default);
+}
+
+.dashboard-map__open:hover {
+  color: var(--indigo-200);
+}

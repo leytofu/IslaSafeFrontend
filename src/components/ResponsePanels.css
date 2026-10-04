@@ -1,0 +1,188 @@
+/* Dashboard response column: recent SOS + active advisories panels */
+
+.response-panels {
+  display: block;
+}
+
+.response-panel {
+  padding: 1.25rem;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.panel-header h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  line-height: var(--text-base-lh);
+  font-weight: 600;
+  color: var(--white);
+}
+
+.panel-header__link {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--indigo-300);
+  transition: var(--transition-default);
+}
+
+.panel-header__link:hover {
+  color: var(--indigo-200);
+}
+
+.panel-header__link svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Recent SOS request row */
+.sos-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--radius-xl);
+  padding: 0.625rem 0.5rem;
+  text-align: left;
+  transition: var(--transition-default);
+}
+
+.sos-row:hover,
+.sos-row:focus-visible {
+  background-color: var(--glass-5);
+}
+
+.sos-row .sos-tile svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sos-row__body {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+
+.sos-row__name {
+  display: block;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-100);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sos-row__location {
+  display: block;
+  margin-top: 0.125rem;
+  overflow: hidden;
+  font-size: 10px;
+  color: var(--slate-500);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sos-row__time {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--slate-600);
+}
+
+.sos-row__chevron {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--slate-600);
+}
+
+/* Empty state */
+.sos-empty {
+  border: 1px dashed var(--glass-12);
+  border-radius: var(--radius-xl);
+  background-color: var(--glass-25);
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+
+.sos-empty svg {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-inline: auto;
+  color: var(--slate-500);
+}
+
+.sos-empty p {
+  margin-top: 0.5rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+  color: var(--slate-300);
+}
+
+/* Advisory card (panel preview + dialog) */
+.advisory-card {
+  display: block;
+  width: 100%;
+  border-left: 3px solid transparent;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  padding: 0.75rem;
+  text-align: left;
+  transition: var(--transition-default);
+}
+
+.advisory-card:hover {
+  translate: 0.125rem 0;
+  filter: brightness(1.25);
+}
+
+.advisory-card--critical {
+  border-left-color: var(--rose-500);
+  background-color: color-mix(in oklab, var(--rose-500) 7%, transparent);
+}
+
+.advisory-card--warning {
+  border-left-color: var(--amber-400);
+  background-color: color-mix(in oklab, var(--amber-400) 7%, transparent);
+}
+
+.advisory-card--info {
+  border-left-color: var(--blue-400);
+  background-color: color-mix(in oklab, var(--blue-400) 7%, transparent);
+}
+
+.advisory-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lh);
+  font-weight: 700;
+  color: var(--slate-100);
+}
+
+.advisory-card__title svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--slate-300);
+}
+
+.advisory-card__meta {
+  display: block;
+  margin-top: 0.375rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--slate-500);
+}
