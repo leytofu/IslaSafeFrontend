@@ -9,6 +9,10 @@ export interface AuthUser {
   name: string
   email: string
   role: string
+  contact_number: string | null
+  office: string | null
+  jurisdiction: string | null
+  avatar_url: string | null
 }
 
 interface Session {
@@ -17,7 +21,15 @@ interface Session {
 }
 
 const STORAGE_KEY = 'islasafe.session'
-const MOCK_USER: AuthUser = { id: 0, name: 'Admin MDRRMO', email: 'admin@mock.local', role: 'admin' }
+const MOCK_USER: AuthUser = { id: 0, name: 'Admin MDRRMO', email: 'admin@mock.local', role: 'admin', contact_number: null, office: null, jurisdiction: null, avatar_url: null }
+
+/**
+ * The web dashboard is reserved for administrators. Residents and camp
+ * managers will authenticate through the future mobile app — the backend
+ * login endpoint stays open for them, but the web refuses every non-admin
+ * session at the door.
+ */
+const ADMIN_ONLY_ERROR = 'This web portal is for MDRRMO administrators only. Resident and camp manager accounts will use the IslaSafe mobile app.'
 
 function readStoredSession(): Session | null {
   try {
@@ -74,6 +86,15 @@ export function useAuth() {
     apiFetch<{ user: AuthUser }>('/auth/me', { token: session.token })
       .then((response) => {
         if (cancelled) return
+
+        // Refuse restored sessions that no longer hold the admin role
+        // (e.g., a leftover session, or a role change after signing in).
+        if (response.user.role !== 'admin') {
+          window.localStorage.removeItem(STORAGE_KEY)
+          setStatus('unauthenticated')
+          return
+        }
+
         setToken(session.token)
         setUser(response.user)
         setStatus('authenticated')
@@ -101,6 +122,13 @@ export function useAuth() {
           method: 'POST',
           body: { email, password },
         })
+
+        // Only the admin role may enter the web dashboard. Non-admin
+        // accounts get a clear rejection instead of a session.
+        if (response.user.role !== 'admin') {
+          return ADMIN_ONLY_ERROR
+        }
+
         persist(response)
         return null
       } catch (error) {
@@ -110,25 +138,51 @@ export function useAuth() {
     [persist],
   )
 
-  const register = useCallback(
-    async (input: { name: string; email: string; password: string }): Promise<string | null> => {
+  const updateProfile = useCallback(
+    async (input: { name: string; email: string; contact_number: string; office: string; jurisdiction: string; avatar?: File }): Promise<string | null> => {
       if (environment.features.useMockData) {
-        persist({ token: 'mock-token', user: { ...MOCK_USER, name: input.name, email: input.email } })
+        // Mock mode: apply changes locally so the UI can be explored.
+        const current = user ?? MOCK_USER
+        persist({
+          token: token ?? 'mock-token',
+          user: {
+            ...current,
+            name: input.name,
+            email: input.email,
+            contact_number: input.contact_number || null,
+            office: input.office || null,
+            jurisdiction: input.jurisdiction || null,
+          },
+        })
         return null
       }
 
+      if (!token) return 'Your session has expired. Please sign in again.'
+
       try {
-        const response = await apiFetch<{ token: string; user: AuthUser }>('/auth/register', {
-          method: 'POST',
-          body: { ...input, password_confirmation: input.password },
+        // Multipart payload — the avatar file (when present) rides along.
+        const form = new FormData()
+        form.append('name', input.name)
+        form.append('email', input.email)
+        form.append('contact_number', input.contact_number)
+        form.append('office', input.office)
+        form.append('jurisdiction', input.jurisdiction)
+        if (input.avatar) form.append('avatar', input.avatar)
+
+        const response = await apiFetch<{ message: string; user: AuthUser }>('/auth/profile', {
+          method: 'PATCH',
+          body: form,
+          token,
         })
-        persist(response)
+
+        // Keep the stored session in sync with the server's copy.
+        persist({ token, user: response.user })
         return null
       } catch (error) {
-        return error instanceof Error ? error.message : 'Registration failed.'
+        return error instanceof Error ? error.message : 'Failed to update profile.'
       }
     },
-    [persist],
+    [persist, token, user],
   )
 
   const signOut = useCallback(() => {
@@ -139,5 +193,5 @@ export function useAuth() {
     clear()
   }, [token, clear])
 
-  return { status, user, token, signIn, register, signOut }
+  return { status, user, token, signIn, signOut, updateProfile }
 }

@@ -9,8 +9,12 @@ export const roleLabels: Record<Role, string> = {
 }
 
 /**
- * Which sidebar pages each role may open. The backend enforces the same
- * boundaries on the API (see EnsureRole middleware).
+ * Which sidebar pages each role may open. The web dashboard is reserved for
+ * admins (residents and camp managers will use the future mobile app), but
+ * the role map is kept so the future mobile client can reuse the same
+ * definitions. The backend enforces the same boundaries on the API
+ * (see EnsureRole middleware) — this map is a UI filter, never a
+ * substitute for server-side authorization.
  */
 export const allowedPages: Record<Role, PageName[]> = {
   admin: [

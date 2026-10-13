@@ -42,15 +42,19 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   const timer = window.setTimeout(() => controller.abort(), environment.api.timeoutMs)
 
   try {
+    // FormData bodies (file uploads) must not be JSON-stringified — the
+    // browser sets the multipart boundary automatically.
+    const isFormData = body instanceof FormData
+
     const response = await fetch(`${environment.api.baseUrl}${path}`, {
       method,
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
     })
 
     if (!response.ok) {

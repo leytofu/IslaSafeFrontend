@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import './components/table.css'
 import './App.css'
 import { DashboardPage } from './pages/DashboardPage'
@@ -57,6 +57,49 @@ function App() {
   const [isMapOnlyView, setIsMapOnlyView] = useState(false)
   const [selectedSosRequestId, setSelectedSosRequestId] = useState<string | null>(null)
   const [resetRequest, setResetRequest] = useState<ResetRequest | null>(readResetRequest)
+  // Bumped when the profile button is clicked so SettingsPage remounts on the Profile tab.
+  const [settingsTabKey, setSettingsTabKey] = useState(0)
+  // Sidebar collapse state (toggled by tapping the logo) — persisted so the
+  // preference survives a refresh.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem('islasafe.sidebar.collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((current) => {
+      const next = !current
+      try {
+        window.localStorage.setItem('islasafe.sidebar.collapsed', String(next))
+      } catch {
+        // Storage unavailable — state still works for this session.
+      }
+      return next
+    })
+  }
+
+  // VS Code-style Ctrl+B shortcut to toggle the sidebar (desktop only).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
+        event.preventDefault()
+        setSidebarCollapsed((current) => {
+          const next = !current
+          try {
+            window.localStorage.setItem('islasafe.sidebar.collapsed', String(next))
+          } catch {
+            // Storage unavailable — state still works for this session.
+          }
+          return next
+        })
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   // Leaves the reset-password URL so a refresh lands back on the normal app.
   const clearResetRequest = () => {
@@ -93,6 +136,13 @@ function App() {
     }
   }
 
+  // The lower-left profile button jumps straight to Settings → Profile,
+  // even if another settings tab was previously open.
+  const openProfile = () => {
+    setSettingsTabKey((k) => k + 1)
+    navigate('Settings')
+  }
+
   const openSosRequest = (id: string) => {
     navigate('SOS Management')
     setSelectedSosRequestId(id)
@@ -101,7 +151,7 @@ function App() {
   // A password-reset link wins over every other view — the user may not even
   // be signed in (or may have an old session) when they open it.
   if (resetRequest) {
-    return <AuthPage onClearReset={clearResetRequest} onRegister={auth.register} onSignIn={auth.signIn} resetRequest={resetRequest} />
+    return <AuthPage onClearReset={clearResetRequest} onSignIn={auth.signIn} resetRequest={resetRequest} />
   }
 
   if (auth.status === 'loading') {
@@ -109,7 +159,7 @@ function App() {
   }
 
   if (auth.status === 'unauthenticated' || !auth.user) {
-    return <AuthPage onRegister={auth.register} onSignIn={auth.signIn} />
+    return <AuthPage onSignIn={auth.signIn} />
   }
 
   const renderContent = () => {
@@ -129,7 +179,7 @@ function App() {
       Advisories: <AdvisoriesPage />,
       Residents: <ResidentsPage />,
       'Reports & Analytics': <ReportsPage />,
-      Settings: <SettingsPage />,
+      Settings: <SettingsPage key={settingsTabKey} onSaveProfile={auth.updateProfile} user={auth.user} />,
     }
 
     return pages[page] ?? null
@@ -148,10 +198,10 @@ function App() {
 
   return (
     <>
-      <div className="app-shell">
+      <div className={`app-shell${sidebarCollapsed ? ' app-shell--collapsed' : ''}`}>
         <div className="app-shell__bg app-shell__bg--glow" />
         <div className="app-shell__bg app-shell__bg--grid" />
-        <Sidebar activePage={page} isOpen={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={navigate} onSignOut={auth.signOut} allowedPages={visiblePages} user={auth.user} />
+        <Sidebar activePage={page} collapsed={sidebarCollapsed} isOpen={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={navigate} onOpenProfile={openProfile} onSignOut={auth.signOut} onToggleCollapse={toggleSidebar} allowedPages={visiblePages} user={auth.user} />
         <main className="app-main">
           <Topbar onOpenMenu={() => setMenuOpen(true)} page={page} />
           <div className="app-content">{renderContent()}</div>

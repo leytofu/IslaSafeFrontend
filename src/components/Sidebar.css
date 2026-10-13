@@ -21,6 +21,18 @@
   }
 }
 
+/* Shared timing for the collapse/expand morph — every moving part
+   (rail width, main margin, footer, text fades) uses the exact same
+   curve and duration so the whole layout moves as one.
+
+   easeInOutQuint (0.77, 0, 0.175, 1): gentle acceleration into the
+   move and a long, silky deceleration out of it — reads as "heavy
+   glass on a rail" rather than a snap. */
+.sidebar {
+  --collapse-duration: 450ms;
+  --collapse-ease: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
 .sidebar {
   position: fixed;
   top: 0;
@@ -30,14 +42,30 @@
   display: flex;
   flex-direction: column;
   width: 264px;
+  overflow: hidden;
   border-right: 1px solid var(--glass-8);
-  background-color: rgb(9 14 28 / 0.95);
+  background-color: rgb(9 14 28 / 0.97);
   padding: 1.25rem 1rem;
   box-shadow: 0 25px 50px -12px color-mix(in oklab, var(--black) 50%, transparent);
-  -webkit-backdrop-filter: blur(var(--blur-2xl));
-  backdrop-filter: blur(var(--blur-2xl));
   translate: -100% 0;
-  transition: translate 0.3s var(--ease-default);
+  /* Keep the rail on its own composited layer so width repaints stay cheap. */
+  will-change: width, translate;
+  transition:
+    translate var(--collapse-duration) var(--collapse-ease),
+    width var(--collapse-duration) var(--collapse-ease),
+    padding var(--collapse-duration) var(--collapse-ease);
+}
+
+/* The frosted blur is only useful where the drawer overlays page content
+   (mobile). On desktop the sidebar sits beside the content over the plain
+   page background — the blur contributed ~nothing visually but forced an
+   expensive re-blur on every animation frame. */
+@media (min-width: 1024px) {
+  .sidebar {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: rgb(9 14 28);
+  }
 }
 
 .sidebar.is-open {
@@ -51,34 +79,70 @@
 }
 
 .sidebar__brand {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
   border-bottom: 1px solid var(--glass-8);
   padding: 0 0.5rem 1.25rem;
+  text-align: left;
 }
 
-.sidebar__brand-icon {
+/* Only the logo icon is the clickable collapse/expand trigger */
+.sidebar__logo-btn {
   display: grid;
   width: 2.5rem;
   height: 2.5rem;
+  flex-shrink: 0;
   place-items: center;
   border: 1px solid color-mix(in oklab, var(--indigo-300) 30%, transparent);
   border-radius: var(--radius-xl);
   background-image: linear-gradient(to bottom right, var(--indigo-500), var(--blue-600), var(--cyan-500));
+  color: var(--white);
+  cursor: pointer;
   box-shadow:
     0 10px 15px -3px color-mix(in oklab, var(--indigo-950) 60%, transparent),
     0 4px 6px -4px color-mix(in oklab, var(--indigo-950) 60%, transparent);
+  transition: var(--transition-default), translate var(--collapse-duration) var(--collapse-ease);
 }
 
-.sidebar__brand-icon svg {
+.sidebar__logo-btn:hover {
+  translate: 0 -1px;
+  box-shadow:
+    0 14px 20px -4px color-mix(in oklab, var(--indigo-950) 70%, transparent),
+    0 6px 8px -5px color-mix(in oklab, var(--indigo-950) 70%, transparent);
+}
+
+.sidebar__logo-btn:active {
+  translate: 0 0;
+}
+
+.sidebar__logo-btn:focus-visible {
+  outline: 2px solid var(--indigo-300);
+  outline-offset: 2px;
+}
+
+.sidebar__logo-btn svg {
   width: 1.25rem;
   height: 1.25rem;
-  color: var(--white);
+}
+
+.sidebar__brand-text {
+  min-width: 0;
+  max-width: 12rem;
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  translate: 0 0;
+  transition:
+    max-width var(--collapse-duration) var(--collapse-ease),
+    translate var(--collapse-duration) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.6) ease;
 }
 
 .sidebar__brand-name {
+  display: block;
   font-family: var(--font-display);
   font-size: var(--text-lg);
   line-height: var(--text-lg-lh);
@@ -88,11 +152,55 @@
 }
 
 .sidebar__brand-tag {
+  display: block;
   margin-top: 0.125rem;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--slate-500);
+}
+
+/* Collapse toggle — absolute so it can glide between two homes:
+   expanded → inline-right of the brand row; collapsed → centered
+   directly under the logo (same glide technique as the signout). */
+.sidebar__collapse-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid var(--glass-10);
+  border-radius: var(--radius-lg);
+  color: var(--slate-500);
+  cursor: pointer;
+  transition:
+    color var(--transition-default),
+    border-color var(--transition-default),
+    background-color var(--transition-default),
+    top var(--collapse-duration) var(--collapse-ease),
+    right var(--collapse-duration) var(--collapse-ease),
+    translate var(--collapse-duration) var(--collapse-ease),
+    scale calc(var(--collapse-duration) * 0.6) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.5) ease;
+}
+
+.sidebar__collapse-btn:hover {
+  border-color: color-mix(in oklab, var(--indigo-400) 40%, transparent);
+  background-color: var(--glass-5);
+  color: var(--indigo-300);
+}
+
+.sidebar__collapse-btn:focus-visible {
+  outline: 2px solid var(--indigo-400);
+  outline-offset: 2px;
+}
+
+.sidebar__collapse-btn svg {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .sidebar__nav {
@@ -107,27 +215,43 @@
 }
 
 .nav-group__title {
+  height: 1rem;
   margin-bottom: 0.5rem;
+  overflow: hidden;
   padding-inline: 0.75rem;
   font-size: 10px;
+  line-height: 1rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: var(--slate-500);
+  transition:
+    height var(--collapse-duration) var(--collapse-ease),
+    margin var(--collapse-duration) var(--collapse-ease),
+    padding var(--collapse-duration) var(--collapse-ease),
+    color calc(var(--collapse-duration) * 0.5) ease,
+    background-color calc(var(--collapse-duration) * 0.8) ease;
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   width: 100%;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
+  overflow: hidden;
   border: 1px solid transparent;
   border-radius: var(--radius-xl);
   padding: 0.625rem 0.75rem;
   text-align: left;
   font-size: 13px;
   font-weight: 500;
-  transition: var(--transition-default);
+  transition:
+    var(--transition-default),
+    padding var(--collapse-duration) var(--collapse-ease),
+    gap var(--collapse-duration) var(--collapse-ease);
 }
 
 .nav-item:not(.is-danger):not(.is-active) {
@@ -197,16 +321,34 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  opacity: 1;
+  translate: 0 0;
+  /* flex-grow is animatable — the icon glides to center as the label
+     gives up its space; the extra translate makes the words themselves
+     slide out to the left as they fade, instead of just dissolving. */
+  transition:
+    flex-grow var(--collapse-duration) var(--collapse-ease),
+    translate var(--collapse-duration) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.5) ease;
 }
 
 .nav-item__badge {
+  flex-shrink: 0;
   border-radius: var(--radius-full);
   background-color: var(--rose-500);
   padding: 0.125rem 0.5rem;
   font-family: var(--font-mono);
   font-size: 10px;
+  line-height: 1.25;
   font-weight: 700;
+  white-space: nowrap;
   color: var(--white);
+  transition:
+    width var(--collapse-duration) var(--collapse-ease),
+    height var(--collapse-duration) var(--collapse-ease),
+    padding var(--collapse-duration) var(--collapse-ease),
+    font-size var(--collapse-duration) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.5) ease;
 }
 
 .nav-item.is-danger .nav-item__badge {
@@ -214,20 +356,54 @@
 }
 
 .sidebar__user {
+  position: relative;
   display: flex;
+  min-height: 3.25rem;
   align-items: center;
   gap: 0.75rem;
   margin-top: 1rem;
   border-top: 1px solid var(--glass-8);
-  padding: 1rem 0.5rem 0;
+  /* Right padding reserves room for the absolutely-positioned signout so
+     the meta text never slides underneath it. */
+  padding: 1rem 2rem 0 0.5rem;
+  transition:
+    gap var(--collapse-duration) var(--collapse-ease),
+    margin var(--collapse-duration) var(--collapse-ease),
+    padding var(--collapse-duration) var(--collapse-ease),
+    min-height var(--collapse-duration) var(--collapse-ease);
+}
+
+.sidebar__user-btn {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.875rem;
+  border-radius: var(--radius-xl);
+  padding: 0.625rem;
+  margin: -0.625rem;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-default);
+}
+
+.sidebar__user-btn:hover {
+  background-color: var(--glass-5);
+}
+
+.sidebar__user-btn:focus-visible {
+  outline: 2px solid var(--indigo-400);
+  outline-offset: 2px;
 }
 
 .sidebar__user-avatar {
+  position: relative;
   display: grid;
   flex-shrink: 0;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
   place-items: center;
+  overflow: hidden;
   border: 2px solid var(--glass-20);
   border-radius: var(--radius-full);
   background-image: linear-gradient(to bottom right, var(--violet-400), var(--blue-500));
@@ -235,17 +411,37 @@
   line-height: var(--text-xs-lh);
   font-weight: 700;
   color: var(--white);
+  transition:
+    width var(--collapse-duration) var(--collapse-ease),
+    height var(--collapse-duration) var(--collapse-ease),
+    font-size var(--collapse-duration) var(--collapse-ease);
+}
+
+.sidebar__user-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sidebar__user-meta {
   min-width: 0;
-  flex: 1 1 0%;
+  max-width: 12rem;
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  translate: 0 0;
+  transition:
+    max-width var(--collapse-duration) var(--collapse-ease),
+    translate var(--collapse-duration) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.5) ease;
 }
 
 .sidebar__user-name {
   display: block;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--slate-100);
   text-overflow: ellipsis;
@@ -254,20 +450,37 @@
 
 .sidebar__user-role {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--slate-500);
 }
 
 .sidebar__signout {
+  position: absolute;
+  /* Vertically centers with the avatar: the row's flex content is centered
+     between padding-top 1rem and min-height 3.25rem, putting the avatar
+     centre at 2.125rem. A 1.75rem-tall button centred there starts at 1.25rem.
+     (A naive top:1rem sat 2px too high because the row padding is
+     asymmetric — 1rem top, 0 bottom.) */
+  right: 0.5rem;
+  top: 1.25rem;
   display: grid;
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   place-items: center;
   border: 1px solid var(--glass-10);
   border-radius: var(--radius-lg);
   color: var(--slate-400);
-  transition: var(--transition-default);
+  /* top / right / translate are all animatable — this is what lets the
+     button glide from "inline right" (expanded) to "stacked under the
+     avatar" (collapsed) instead of snapping via flex-direction. */
+  transition:
+    var(--transition-default),
+    top var(--collapse-duration) var(--collapse-ease),
+    right var(--collapse-duration) var(--collapse-ease),
+    translate var(--collapse-duration) var(--collapse-ease),
+    width var(--collapse-duration) var(--collapse-ease),
+    height var(--collapse-duration) var(--collapse-ease),
+    border-color calc(var(--collapse-duration) * 0.6) ease;
 }
 
 .sidebar__signout:hover {
@@ -279,4 +492,142 @@
 .sidebar__signout svg {
   width: 1rem;
   height: 1rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Collapsed rail (desktop only) — toggled by tapping the brand logo.  */
+/* Every hide/show below animates via opacity + max-width (never       */
+/* display:none) so nothing pops while the rail shrinks.               */
+/* ------------------------------------------------------------------ */
+@media (min-width: 1024px) {
+  .sidebar.is-collapsed {
+    width: 84px;
+    padding-inline: 0.75rem;
+  }
+
+  .sidebar.is-collapsed .sidebar__brand {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+    /* Grow the row so the glide-to button has room below the logo. */
+    min-height: 4.75rem;
+    padding-bottom: 2.25rem;
+  }
+
+  .sidebar.is-collapsed .sidebar__brand-text {
+    max-width: 0;
+    opacity: 0;
+    translate: -0.5rem 0;
+  }
+
+  /* Glide the toggle from inline-right down to centered under the logo. */
+  .sidebar.is-collapsed .sidebar__collapse-btn {
+    top: 3.125rem;
+    right: 50%;
+    translate: 50% 0;
+  }
+
+  .sidebar.is-collapsed .nav-group__title {
+    height: 1px;
+    margin: 0.5rem 0.5rem 0.75rem;
+    padding: 0;
+    background-color: var(--glass-8);
+    font-size: 0;
+    letter-spacing: 0;
+    color: transparent;
+  }
+
+  .sidebar.is-collapsed .nav-item {
+    gap: 0;
+    padding-inline: 0.5rem;
+  }
+
+  .sidebar.is-collapsed .nav-item__label {
+    flex-grow: 0;
+    max-width: 0;
+    opacity: 0;
+    /* Words slide out to the left as they fade — no dead "dissolve in place". */
+    translate: -0.5rem 0;
+  }
+
+  .sidebar.is-collapsed .nav-item__badge {
+    position: absolute;
+    top: 0.375rem;
+    right: 0.375rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    padding: 0;
+    font-size: 0;
+    color: transparent;
+  }
+
+  .sidebar.is-collapsed .sidebar__user {
+    /* No flex-direction switch here — that property can't animate.
+       The signout is absolutely positioned and glides via top/right/
+       translate instead; this row only needs to grow to make room. */
+    min-height: 7.25rem;
+    justify-content: center;
+    gap: 0;
+    margin-top: 0.5rem;
+    padding: 0.75rem 0 0;
+  }
+
+  .sidebar.is-collapsed .sidebar__user-btn {
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    /* Nudge the avatar/profile slightly right of dead-center so it
+       lines up with the signout below it. */
+    translate: 0.375rem 0;
+  }
+
+  .sidebar.is-collapsed .sidebar__user-meta {
+    max-width: 0;
+    opacity: 0;
+    translate: 0 -0.375rem;
+  }
+
+  .sidebar.is-collapsed .sidebar__user-avatar {
+    width: 2.125rem;
+    height: 2.125rem;
+    font-size: 10px;
+  }
+
+  .sidebar.is-collapsed .sidebar__signout {
+    /* Glide from inline-right down to centered under the avatar —
+       raised from 4.125rem so it doesn't crowd the avatar above it. */
+    top: 5.5rem;
+    right: 50%;
+    translate: 50% 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-color: transparent;
+  }
+}
+
+/* Users who prefer reduced motion get an instant (but still functional) toggle */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar__brand,
+  .sidebar__brand-text,
+  .sidebar__collapse-btn,
+  .sidebar__collapse-btn svg,
+  .nav-group__title,
+  .nav-item,
+  .nav-item__label,
+  .nav-item__badge,
+  .sidebar__user,
+  .sidebar__user-btn,
+  .sidebar__user-avatar,
+  .sidebar__user-meta,
+  .sidebar__signout,
+  .app-main,
+  .app-footer {
+    transition: none;
+  }
+
+  .sidebar {
+    will-change: auto;
+  }
 }

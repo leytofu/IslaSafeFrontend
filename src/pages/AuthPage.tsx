@@ -1,11 +1,9 @@
-import { useState, type FormEvent, type InputHTMLAttributes } from 'react'
-import { Activity, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes, type KeyboardEvent, type Ref } from 'react'
+import { Activity, AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Lock, Mail, ShieldCheck } from 'lucide-react'
 import { CinematicIntro } from '../components/CinematicIntro'
 import { ForgotPasswordForm } from '../components/ForgotPasswordForm'
 import { ResetPasswordForm } from '../components/ResetPasswordForm'
 import './AuthPage.css'
-
-type AuthMode = 'sign-in' | 'sign-up'
 
 export interface ResetRequest {
   token: string
@@ -14,78 +12,113 @@ export interface ResetRequest {
 
 interface AuthPageProps {
   onSignIn: (email: string, password: string) => Promise<string | null>
-  onRegister: (input: { name: string; email: string; password: string }) => Promise<string | null>
   resetRequest?: ResetRequest | null
   onClearReset?: () => void
 }
 
 const authInputClassName = 'auth-input auth-input-field'
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function AuthInput({ icon: Icon, label, ...inputProps }: InputHTMLAttributes<HTMLInputElement> & { icon: typeof Mail; label: string }) {
+interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  icon: typeof Mail
+  label: string
+  invalid?: boolean
+  describedBy?: string
+  inputRef?: Ref<HTMLInputElement>
+}
+
+function AuthInput({ icon: Icon, label, invalid, describedBy, inputRef, ...inputProps }: AuthInputProps) {
   return (
     <label className="field">
       <span className="field__label field__label--auth">{label}</span>
       <span className="auth-input-wrap">
         <Icon className="auth-input-icon" />
-        <input className={authInputClassName} {...inputProps} />
+        <input aria-describedby={describedBy} aria-invalid={invalid || undefined} className={`${authInputClassName}${invalid ? ' is-invalid' : ''}`} ref={inputRef} {...inputProps} />
       </span>
     </label>
   )
 }
 
-function LoginPasswordField({ isSignIn, onChange, showPassword, onToggle, value }: { isSignIn: boolean; onChange: (value: string) => void; onToggle: () => void; showPassword: boolean; value: string }) {
+function LoginPasswordField({ capsLockOn, onChange, onCapsLockChange, onToggle, showPassword, value }: { capsLockOn: boolean; onChange: (value: string) => void; onCapsLockChange: (on: boolean) => void; onToggle: () => void; showPassword: boolean; value: string }) {
+  const detectCapsLock = (event: KeyboardEvent<HTMLInputElement>) => {
+    onCapsLockChange(event.getModifierState('CapsLock'))
+  }
+
   return (
     <label className="field">
       <span className="field__label field__label--auth">Password</span>
       <span className="auth-input-wrap">
         <LockKeyhole className="auth-input-icon" />
-        <input autoComplete={isSignIn ? 'current-password' : 'new-password'} className={`${authInputClassName} auth-input-field--trailing`} name={isSignIn ? 'current-password' : 'new-password'} onChange={(event) => onChange(event.target.value)} placeholder="Enter your password" required type={showPassword ? 'text' : 'password'} value={value} />
-        <button aria-label={showPassword ? 'Hide password' : 'Show password'} className="auth-password-toggle" onClick={onToggle} type="button">
+        <input
+          autoComplete="current-password"
+          className={`${authInputClassName} auth-input-field--trailing`}
+          name="current-password"
+          onChange={(event) => onChange(event.target.value)}
+          onKeyUp={detectCapsLock}
+          onKeyDown={detectCapsLock}
+          onBlur={() => onCapsLockChange(false)}
+          placeholder="Enter your password"
+          required
+          type={showPassword ? 'text' : 'password'}
+          value={value}
+        />
+        <button aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="auth-password-toggle" onClick={onToggle} type="button">
           {showPassword ? <EyeOff /> : <Eye />}
         </button>
       </span>
+      {capsLockOn && (
+        <span className="auth-caps" role="status">
+          <AlertCircle /> Caps Lock is on
+        </span>
+      )}
     </label>
   )
 }
 
-export function AuthPage({ onSignIn, onRegister, resetRequest = null, onClearReset }: AuthPageProps) {
-  const [mode, setMode] = useState<AuthMode>('sign-in')
+export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPageProps) {
   const [showPassword, setShowPassword] = useState(false)
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [capsLockOn, setCapsLockOn] = useState(false)
   const [showPasswordRecovery, setShowPasswordRecovery] = useState(false)
-  const isSignIn = mode === 'sign-in'
+  const emailInputRef = useRef<HTMLInputElement>(null)
 
-  const switchMode = (nextMode: AuthMode) => {
-    setMode(nextMode)
-    setShowPassword(false)
-    setShowPasswordRecovery(false)
-    setName('')
-    setEmail('')
-    setPassword('')
-    setConfirmPassword('')
-    setErrorMessage(null)
+  // Focus the email field as soon as the sign-in form is usable.
+  useEffect(() => {
+    if (!showPasswordRecovery && !resetRequest) {
+      emailInputRef.current?.focus()
+    }
+  }, [showPasswordRecovery, resetRequest])
+
+  const validateEmail = (value: string): boolean => {
+    if (!value.trim()) {
+      setEmailError('Email address is required.')
+      return false
+    }
+    if (!EMAIL_PATTERN.test(value.trim())) {
+      setEmailError('Enter a valid email address.')
+      return false
+    }
+    setEmailError(null)
+    return true
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (submitting) return
 
-    if (!isSignIn && password !== confirmPassword) {
-      setErrorMessage('Passwords do not match.')
+    if (!validateEmail(email)) {
+      emailInputRef.current?.focus()
       return
     }
 
     setSubmitting(true)
     setErrorMessage(null)
 
-    const error = isSignIn
-      ? await onSignIn(email, password)
-      : await onRegister({ name, email, password })
+    const error = await onSignIn(email.trim(), password)
 
     if (error) {
       setErrorMessage(error)
@@ -97,6 +130,8 @@ export function AuthPage({ onSignIn, onRegister, resetRequest = null, onClearRes
     <main className="auth-page">
       <CinematicIntro />
       <div className="auth-page__bg" />
+      <div aria-hidden="true" className="auth-orb auth-orb--one" />
+      <div aria-hidden="true" className="auth-orb auth-orb--two" />
 
       <section className="auth-hero">
         <div className="auth-hero__brand">
@@ -130,30 +165,52 @@ export function AuthPage({ onSignIn, onRegister, resetRequest = null, onClearRes
               />
             ) : showPasswordRecovery ? <ForgotPasswordForm initialEmail={email} onBackToSignIn={() => setShowPasswordRecovery(false)} /> : <>
               <div className="auth-card__header">
-                <div className="auth-secure"><span className="auth-secure__dot" /> Secure portal</div>
-                <h2 className="auth-card__title">{isSignIn ? 'Welcome back' : 'Create your account'}</h2>
-                <p className="auth-card__subtitle">{isSignIn ? 'Sign in to continue to the operations dashboard.' : 'Register for an IslaSafe account. New accounts start with resident access.'}</p>
+                <div className="auth-secure"><span className="auth-secure__dot" /> Secure admin portal</div>
+                <h2 className="auth-card__title">Welcome back</h2>
+                <p className="auth-card__subtitle">Sign in to continue to the operations dashboard.</p>
               </div>
 
-              <div className="auth-tabs" role="tablist">
-                <button aria-selected={isSignIn} className={`auth-tab${isSignIn ? ' is-active' : ''}`} onClick={() => switchMode('sign-in')} role="tab" type="button">Sign in</button>
-                <button aria-selected={!isSignIn} className={`auth-tab${!isSignIn ? ' is-active' : ''}`} onClick={() => switchMode('sign-up')} role="tab" type="button">Sign up</button>
-              </div>
-
-              <form autoComplete={isSignIn ? 'on' : 'off'} className="stack-4" key={mode} onSubmit={handleSubmit}>
-                {!isSignIn && <AuthInput autoComplete="off" icon={UserRound} label="Full name" onChange={(event) => setName(event.target.value)} placeholder="Juan Dela Cruz" required type="text" value={name} />}
-                <AuthInput autoComplete={isSignIn ? 'username' : 'off'} icon={Mail} label="Email address" name={isSignIn ? 'username' : 'registration-email'} onChange={(event) => setEmail(event.target.value)} placeholder="name@cpg.gov.ph" required type="email" value={email} />
-                <LoginPasswordField isSignIn={isSignIn} onChange={setPassword} onToggle={() => setShowPassword((current) => !current)} showPassword={showPassword} value={password} />
-                {!isSignIn && <AuthInput autoComplete="new-password" icon={LockKeyhole} label="Confirm password" onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Re-enter your password" required type="password" value={confirmPassword} />}
-                {isSignIn && <div className="auth-options"><label className="auth-remember"><input className="auth-checkbox" type="checkbox" /> Remember me</label><button className="auth-link" onClick={() => setShowPasswordRecovery(true)} type="button">Forgot password?</button></div>}
-                {errorMessage && <div className="auth-error" role="alert">{errorMessage}</div>}
-                <button className="auth-submit" disabled={submitting} type="submit">
-                  {submitting ? (isSignIn ? 'Signing in...' : 'Creating account...') : (isSignIn ? 'Sign in to dashboard' : 'Create account and continue')}
-                  {submitting ? <Loader2 className="is-spinning" /> : <ArrowRight />}
+              <form autoComplete="on" className="stack-4" noValidate onSubmit={handleSubmit}>
+                <AuthInput
+                  autoComplete="username"
+                  describedBy={emailError ? 'auth-email-error' : undefined}
+                  icon={Mail}
+                  invalid={Boolean(emailError)}
+                  label="Email address"
+                  name="username"
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    if (emailError) setEmailError(null)
+                  }}
+                  placeholder="name@cpg.gov.ph"
+                  inputRef={emailInputRef}
+                  required
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  type="email"
+                  value={email}
+                />
+                {emailError && <p className="auth-field-error" id="auth-email-error" role="alert">{emailError}</p>}
+                <LoginPasswordField capsLockOn={capsLockOn} onChange={setPassword} onCapsLockChange={setCapsLockOn} onToggle={() => setShowPassword((current) => !current)} showPassword={showPassword} value={password} />
+                <div className="auth-options">
+                  <label className="auth-remember"><input className="auth-checkbox" type="checkbox" /><span aria-hidden="true" className="auth-checkbox__mark" /> Remember me</label>
+                  <button className="auth-link" onClick={() => setShowPasswordRecovery(true)} type="button">Forgot password?</button>
+                </div>
+                {errorMessage && <div aria-live="polite" className="auth-error" role="alert"><AlertCircle className="auth-error__icon" /><span>{errorMessage}</span></div>}
+                <button aria-busy={submitting} className="auth-submit" disabled={submitting} type="submit">
+                  {submitting ? 'Signing in...' : 'Sign in to dashboard'}
+                  {submitting ? <Loader2 className="is-spinning" /> : <ArrowRight className="auth-submit__arrow" />}
                 </button>
               </form>
 
-              <div className="auth-switch">{isSignIn ? <>New to IslaSafe? <button className="auth-link" onClick={() => switchMode('sign-up')} type="button">Create an account</button></> : <>Already registered? <button className="auth-link" onClick={() => switchMode('sign-in')} type="button">Sign in</button></>}</div>
+              <div className="auth-trust" aria-hidden="true">
+                <span><Lock /> Encrypted session</span>
+                <span className="auth-trust__sep" />
+                <span><ShieldCheck /> Role-based access</span>
+              </div>
+
+              <p className="auth-signup-note">Administrator accounts are provisioned by the MDRRMO system administrator.</p>
             </>}
           </div>
           <p className="auth-fineprint"><CheckCircle2 /> Authorized IslaSafe personnel only</p>

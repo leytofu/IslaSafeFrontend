@@ -3,6 +3,8 @@ import {
   AlertTriangle,
   BarChart3,
   BellRing,
+  ChevronsLeft,
+  ChevronsRight,
   CloudSun,
   LayoutDashboard,
   LogOut,
@@ -53,27 +55,33 @@ const communicationItems: NavItem[] = [
 interface SidebarUser {
   name: string
   role: string
+  avatar_url: string | null
 }
 
 interface SidebarProps {
   activePage: PageName
   allowedPages: PageName[]
+  collapsed: boolean
   isOpen: boolean
   user: SidebarUser
   onClose: () => void
   onNavigate: (page: PageName) => void
+  onOpenProfile: () => void
   onSignOut: () => void
+  onToggleCollapse: () => void
 }
 
 function NavigationGroup({
   title,
   items,
   activePage,
+  collapsed,
   onNavigate,
 }: {
   title: string
   items: NavItem[]
   activePage: PageName
+  collapsed: boolean
   onNavigate: (page: PageName) => void
 }) {
   return (
@@ -89,6 +97,8 @@ function NavigationGroup({
               className={`nav-item${isActive ? ' is-active' : ''}${isDanger ? ' is-danger' : ''}`}
               key={label}
               onClick={() => onNavigate(label)}
+              // Collapsed rail hides the label — the title keeps it discoverable.
+              title={collapsed ? label : undefined}
               type="button"
             >
               <Icon className="nav-item__icon" />
@@ -102,7 +112,7 @@ function NavigationGroup({
   )
 }
 
-export function Sidebar({ activePage, allowedPages, isOpen, user, onClose, onNavigate, onSignOut }: SidebarProps) {
+export function Sidebar({ activePage, allowedPages, collapsed, isOpen, user, onClose, onNavigate, onOpenProfile, onSignOut, onToggleCollapse }: SidebarProps) {
   const navigate = (page: PageName) => {
     onNavigate(page)
     onClose()
@@ -126,29 +136,67 @@ export function Sidebar({ activePage, allowedPages, isOpen, user, onClose, onNav
         onClick={onClose}
         type="button"
       />
-      <aside className={`sidebar${isOpen ? ' is-open' : ''}`}>
+      <aside className={`sidebar${isOpen ? ' is-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
         <div className="sidebar__brand">
-          <div className="sidebar__brand-icon">
+          {/* The logo navigates home to the Dashboard. */}
+          <button
+            aria-label="Go to dashboard"
+            className="sidebar__logo-btn"
+            onClick={() => navigate('Dashboard')}
+            title="Dashboard"
+            type="button"
+          >
             <Activity strokeWidth={2.4} />
-          </div>
-          <div>
-            <p className="sidebar__brand-name">IslaSafe</p>
-            <p className="sidebar__brand-tag">MDRRMO PANEL</p>
-          </div>
+          </button>
+          <span className="sidebar__brand-text">
+            <span className="sidebar__brand-name">IslaSafe</span>
+            <span className="sidebar__brand-tag">MDRRMO PANEL</span>
+          </span>
+          {/* Collapse toggle glides: inline-right when expanded,
+              centered under the logo when collapsed. */}
+          <button
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            className="sidebar__collapse-btn"
+            onClick={onToggleCollapse}
+            title={collapsed ? 'Expand navigation (Ctrl+B)' : 'Collapse navigation (Ctrl+B)'}
+            type="button"
+          >
+            {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
+          </button>
         </div>
 
         <nav className="sidebar__nav">
-          <NavigationGroup activePage={activePage} items={visible(operationItems)} onNavigate={navigate} title="Operations" />
-          <NavigationGroup activePage={activePage} items={visible(communicationItems)} onNavigate={navigate} title="Communication" />
-          <NavigationGroup activePage={activePage} items={visible([{ label: 'Settings', icon: Settings }])} onNavigate={navigate} title="System" />
+          <NavigationGroup activePage={activePage} collapsed={collapsed} items={visible(operationItems)} onNavigate={navigate} title="Operations" />
+          <NavigationGroup activePage={activePage} collapsed={collapsed} items={visible(communicationItems)} onNavigate={navigate} title="Communication" />
+          <NavigationGroup activePage={activePage} collapsed={collapsed} items={visible([{ label: 'Settings', icon: Settings }])} onNavigate={navigate} title="System" />
         </nav>
 
         <div className="sidebar__user">
-          <span className="sidebar__user-avatar">{initials || 'U'}</span>
-          <span className="sidebar__user-meta">
-            <span className="sidebar__user-name">{user.name}</span>
-            <span className="sidebar__user-role">{roleLabel}</span>
-          </span>
+          <button
+            aria-label="Open profile settings"
+            className="sidebar__user-btn"
+            onClick={() => { onOpenProfile(); onClose() }}
+            title={collapsed ? `${user.name} · ${roleLabel} — Open profile` : 'Open profile settings'}
+            type="button"
+          >
+            <span className="sidebar__user-avatar">
+              {/* Initials sit underneath as a permanent fallback — if the
+                   photo fails to load (or is missing) they show through. */}
+              {initials || 'U'}
+              {user.avatar_url && (
+                <img
+                  alt=""
+                  onError={(event) => { event.currentTarget.style.display = 'none' }}
+                  src={user.avatar_url}
+                />
+              )}
+            </span>
+            <span className="sidebar__user-meta">
+              <span className="sidebar__user-name">{user.name}</span>
+              <span className="sidebar__user-role">{roleLabel}</span>
+            </span>
+          </button>
           <button aria-label="Sign out" className="sidebar__signout" onClick={onSignOut} title="Sign out" type="button">
             <LogOut />
           </button>
