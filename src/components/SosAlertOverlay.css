@@ -3,21 +3,22 @@
 .sos-alert {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 10000;
   pointer-events: none;
-  background-color: rgb(244 63 94 / 0.32);
-  box-shadow: inset 0 0 0 8px rgb(244 63 94 / 0.7);
-  animation: sos-screen-flash 0.8s steps(2, end) infinite;
 }
+.sos-alert::before { content:""; position:absolute; inset:0; background:rgb(244 63 94 / .25); box-shadow:inset 0 0 0 6px rgb(244 63 94 / .8); animation:sos-screen-pulse 2.4s ease-in-out infinite; }
+.sos-alert__open { pointer-events:auto; flex-shrink:0; min-height:44px; padding:.5rem .75rem; border:1px solid rgb(255 255 255 / .3); border-radius:.625rem; color:white; background:#9f1239; font-size:.75rem; font-weight:650; }
+.sos-alert__open:hover { background:#be123c; }
 
 .sos-alert__banner {
   position: absolute;
+  z-index: 1;
   bottom: 1.25rem;
   left: 50%;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  width: min(92vw, 440px);
+  width: min(92vw, 620px);
   translate: -50% 0;
   border: 1px solid color-mix(in oklab, var(--rose-300) 50%, transparent);
   border-radius: var(--radius-xl);
@@ -57,13 +58,6 @@
   color: color-mix(in oklab, var(--rose-100) 75%, transparent);
 }
 
-@keyframes sos-screen-flash {
-  0%,
-  44% {
-    opacity: 0;
-  }
-  50%,
-  100% {
-    opacity: 1;
-  }
-}
+@keyframes sos-screen-pulse { 0%,100% { opacity:.45; } 50% { opacity:1; } }
+@media (prefers-reduced-motion: reduce) { .sos-alert::before { animation:none; opacity:.7; } }
+@media (max-width: 540px) { .sos-alert__banner { flex-wrap:wrap; } .sos-alert__open { width:100%; } }

@@ -3,8 +3,6 @@ import {
   AlertTriangle,
   BarChart3,
   BellRing,
-  ChevronsLeft,
-  ChevronsRight,
   CloudSun,
   LayoutDashboard,
   LogOut,
@@ -40,7 +38,7 @@ type NavItem = {
 
 const operationItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard },
-  { label: 'SOS Management', icon: BellRing, badge: '12', emphasis: 'danger' },
+  { label: 'SOS Management', icon: BellRing, emphasis: 'danger' },
   { label: 'Hazard Map', icon: Map },
   { label: 'Evacuation Centers', icon: ShieldCheck },
   { label: 'Incident Monitoring', icon: AlertTriangle, badge: '8' },
@@ -60,6 +58,7 @@ interface SidebarUser {
 }
 
 interface SidebarProps {
+  sosCount: number
   activePage: PageName
   allowedPages: PageName[]
   collapsed: boolean
@@ -114,7 +113,7 @@ function NavigationGroup({
   )
 }
 
-export function Sidebar({ activePage, allowedPages, collapsed, isOpen, user, onClose, onNavigate, onOpenProfile, onSignOut, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ sosCount, activePage, allowedPages, collapsed, isOpen, user, onClose, onNavigate, onOpenProfile, onSignOut, onToggleCollapse }: SidebarProps) {
   const navigate = (page: PageName) => {
     onNavigate(page)
     onClose()
@@ -168,37 +167,26 @@ export function Sidebar({ activePage, allowedPages, collapsed, isOpen, user, onC
       />
       <aside ref={drawer} inert={!desktop && !isOpen} aria-hidden={!desktop && !isOpen ? true : undefined} role={!desktop && isOpen ? 'dialog' : undefined} aria-modal={!desktop && isOpen ? true : undefined} aria-label="Main navigation" className={`sidebar${isOpen ? ' is-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
         <div className="sidebar__brand">
-          {/* The logo navigates home to the Dashboard. */}
+          {/* The logo controls navigation size; the brand text opens home. */}
           <button
-            aria-label="Go to dashboard"
+            aria-expanded={desktop ? !collapsed : isOpen}
+            aria-label={desktop ? (collapsed ? 'Expand navigation using logo' : 'Collapse navigation using logo') : 'Close navigation using logo'}
             className="sidebar__logo-btn"
-            onClick={() => navigate('Dashboard')}
-            title="Dashboard"
+            onClick={desktop ? onToggleCollapse : onClose}
+            title={desktop ? (collapsed ? 'Expand navigation' : 'Collapse navigation') : 'Close navigation'}
             type="button"
           >
             <img className="sidebar__logo-image" src="/app-logo.png" alt="" />
           </button>
-          <span className="sidebar__brand-text">
+          <button aria-label="Go to dashboard" className="sidebar__brand-text" inert={desktop && collapsed} onClick={() => navigate('Dashboard')} title="Dashboard" type="button">
             <span className="sidebar__brand-name">IslaSafe</span>
             <span className="sidebar__brand-tag">MDRRMO PANEL</span>
-          </span>
-          <button aria-label="Close navigation menu" className="sidebar__mobile-close" onClick={onClose} type="button"><X /></button>
-          {/* Collapse toggle glides: inline-right when expanded,
-              centered under the logo when collapsed. */}
-          <button
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-            className="sidebar__collapse-btn"
-            onClick={onToggleCollapse}
-            title={collapsed ? 'Expand navigation (Ctrl+B)' : 'Collapse navigation (Ctrl+B)'}
-            type="button"
-          >
-            {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
           </button>
+          <button aria-label="Close navigation menu" className="sidebar__mobile-close" onClick={onClose} type="button"><X /></button>
         </div>
 
         <nav className="sidebar__nav">
-          <NavigationGroup activePage={activePage} collapsed={collapsed} items={visible(operationItems)} onNavigate={navigate} title="Operations" />
+          <NavigationGroup activePage={activePage} collapsed={collapsed} items={visible(operationItems).map(item => item.label === 'SOS Management' ? { ...item, badge: sosCount > 0 ? String(sosCount) : undefined } : item)} onNavigate={navigate} title="Operations" />
           <NavigationGroup activePage={activePage} collapsed={collapsed} items={visible(communicationItems)} onNavigate={navigate} title="Communication" />
           <NavigationGroup activePage={activePage} collapsed={collapsed} items={visible([{ label: 'Settings', icon: Settings }])} onNavigate={navigate} title="System" />
         </nav>

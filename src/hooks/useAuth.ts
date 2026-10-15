@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { environment } from '../config/environment'
 import { apiFetch } from '../utils/api'
 
@@ -33,12 +33,20 @@ const ADMIN_ONLY_ERROR = 'This web portal is for MDRRMO administrators only. Res
 
 function readStoredSession(): Session | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = window.sessionStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const session = JSON.parse(raw) as Session
     return session.token && session.user ? session : null
   } catch {
     return null
+  }
+}
+
+function readRemembered(): boolean {
+  try {
+    return !window.sessionStorage.getItem(STORAGE_KEY) && Boolean(window.localStorage.getItem(STORAGE_KEY))
+  } catch {
+    return false
   }
 }
 
@@ -57,9 +65,14 @@ export function useAuth() {
   })
   const [user, setUser] = useState<AuthUser | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const remembered = useRef(readRemembered())
 
-  const persist = useCallback((session: Session) => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+  const persist = useCallback((session: Session, remember = remembered.current) => {
+    const storage = remember ? window.localStorage : window.sessionStorage
+    storage.setItem(STORAGE_KEY, JSON.stringify(session))
+    const other = remember ? window.sessionStorage : window.localStorage
+    other.removeItem(STORAGE_KEY)
+    remembered.current = remember
     setToken(session.token)
     setUser(session.user)
     setStatus('authenticated')
@@ -67,6 +80,8 @@ export function useAuth() {
 
   const clear = useCallback(() => {
     window.localStorage.removeItem(STORAGE_KEY)
+    window.sessionStorage.removeItem(STORAGE_KEY)
+    remembered.current = false
     setToken(null)
     setUser(null)
     setStatus('unauthenticated')
@@ -91,6 +106,7 @@ export function useAuth() {
         // (e.g., a leftover session, or a role change after signing in).
         if (response.user.role !== 'admin') {
           window.localStorage.removeItem(STORAGE_KEY)
+          window.sessionStorage.removeItem(STORAGE_KEY)
           setStatus('unauthenticated')
           return
         }
@@ -102,6 +118,7 @@ export function useAuth() {
       .catch(() => {
         if (cancelled) return
         window.localStorage.removeItem(STORAGE_KEY)
+        window.sessionStorage.removeItem(STORAGE_KEY)
         setStatus('unauthenticated')
       })
 
@@ -111,9 +128,9 @@ export function useAuth() {
   }, [])
 
   const signIn = useCallback(
-    async (email: string, password: string): Promise<string | null> => {
+    async (email: string, password: string, remember = false): Promise<string | null> => {
       if (environment.features.useMockData) {
-        persist({ token: 'mock-token', user: { ...MOCK_USER, email } })
+        persist({ token: 'mock-token', user: { ...MOCK_USER, email } }, remember)
         return null
       }
 
@@ -129,7 +146,7 @@ export function useAuth() {
           return ADMIN_ONLY_ERROR
         }
 
-        persist(response)
+        persist(response, remember)
         return null
       } catch (error) {
         return error instanceof Error ? error.message : 'Sign in failed.'

@@ -1,151 +1,119 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { HeartPulse } from 'lucide-react'
-import { environment } from '../config/environment'
-import { initialSosRequests, type SosRequest, type SosStatus } from '../data/sosRequests'
-import { apiFetch } from '../utils/api'
+import type { SosRequest, SosStatus } from '../data/sosRequests'
+import { apiFetch, ApiError } from '../utils/api'
 import { toSosRequest, type ApiSosRecord } from '../utils/sosMapper'
+import { acknowledgeSosInbox, emptySosInbox, readSosInbox, receiveSosInbox, type SosInbox } from '../utils/sosInbox'
 
-const POLL_INTERVAL_MS = 5_000
-
+const POLL_INTERVAL_MS = 2_000
 interface UseSosRequestsOptions {
-  /** True while the admin is signed in. */
   enabled: boolean
-  /** Bearer token for the API. */
   token: string
-  /** admin/campmanager only — controls polling and status updates. */
   canManage: boolean
-  /** Fired once per batch of requests that arrived since the last poll. */
-  onNewRequests: (count: number) => void
+  accountId: number | null
+}
+function loadInbox(key: string): SosInbox | null {
+  try { return readSosInbox(window.localStorage.getItem(key)) } catch { return null }
+}
+function saveInbox(key: string, inbox: SosInbox) {
+  try { window.localStorage.setItem(key, JSON.stringify(inbox)) } catch { /* Memory still preserves the alarm for this tab. */ }
 }
 
-function buildMockRequest(id: string): SosRequest {
-  return {
-    id,
-    name: 'New resident request',
-    contact: '0917-XXX-0000',
-    location: 'Purok 6, Pitogo',
-    coordinates: [10.121, 124.558],
-    type: 'Emergency assistance',
-    category: 'Medical',
-    priority: 'High',
-    description: 'A newly received request is awaiting dispatch review.',
-    period: 'today',
-    received: 'Just now',
-    status: 'Pending',
-    color: 'sos-tile--medical',
-    icon: HeartPulse,
-  }
-}
-
-/**
- * Owns the SOS request list.
- *
- * Real mode (`VITE_ENABLE_MOCK_DATA=false`): loads the queue from the API,
- * then polls every few seconds. The first successful response becomes the
- * baseline — anything appearing later is "new" and triggers the alarm via
- * `onNewRequests`.
- *
- * Mock mode: starts from the local mock records; the simulate button adds
- * one locally.
- */
-export function useSosRequests({ enabled, token, canManage, onNewRequests }: UseSosRequestsOptions) {
-  const isMock = environment.features.useMockData
-  const [requests, setRequests] = useState<SosRequest[]>(() => (isMock ? initialSosRequests : []))
-  const knownIdsRef = useRef<Set<string> | null>(null)
-  const onNewRequestsRef = useRef(onNewRequests)
+/** Real resident submissions only. Polling needs no separate WebSocket server. */
+export function useSosRequests({ enabled, token, canManage, accountId }: UseSosRequestsOptions) {
+  const [requests, setRequests] = useState<SosRequest[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
+  const inbox = useRef(emptySosInbox())
+  const updates = useRef(new Set<string>())
+  const revision = useRef(0)
+  const refreshRef = useRef<(() => Promise<void>) | null>(null)
+  const activeToken = useRef(token)
+  const storageKey = accountId === null ? null : `islasafe.sos.inbox.${accountId}`
+  const pollingEnabled = enabled && canManage && token.length > 0 && storageKey !== null
 
   useEffect(() => {
-    onNewRequestsRef.current = onNewRequests
-  }, [onNewRequests])
-
-  const pollingEnabled = enabled && !isMock && canManage && token.length > 0
-
-  useEffect(() => {
-    if (!pollingEnabled) return
-
+    activeToken.current = token
+    revision.current++
+    updates.current.clear()
+    // oxlint-disable-next-line react/set-state-in-effect -- Invalidate the authenticated API cache when its session changes.
+    setRequests([]); setError(''); setUpdatedAt(null)
+    if (!pollingEnabled || !storageKey) {
+      inbox.current = emptySosInbox(); setUnreadCount(0); setLoading(false)
+      return
+    }
+    inbox.current = loadInbox(storageKey) ?? emptySosInbox()
+    setUnreadCount(inbox.current.unreadIds.length)
+    setLoading(true)
     let cancelled = false
-
+    let fetching = false
+    let unauthorized = false
     const poll = async () => {
+      if (cancelled || fetching || unauthorized || updates.current.size > 0) return
+      fetching = true
+      const version = revision.current
       try {
         const response = await apiFetch<{ data: ApiSosRecord[] }>('/sos-requests', { token })
-        if (cancelled) return
-
+        if (cancelled || version !== revision.current) return
         const mapped = response.data.map(toSosRequest)
-        const knownIds = knownIdsRef.current
-
-        if (knownIds === null) {
-          knownIdsRef.current = new Set(mapped.map((request) => request.id))
-        } else {
-          const fresh = mapped.filter((request) => !knownIds.has(request.id))
-          for (const request of fresh) knownIds.add(request.id)
-          if (fresh.length > 0) onNewRequestsRef.current(fresh.length)
-        }
-
-        setRequests(mapped)
-      } catch {
-        // Backend unreachable or session expired — retry on the next tick.
+        // Re-read IDs so acknowledging in another admin tab is respected.
+        inbox.current = receiveSosInbox(loadInbox(storageKey) ?? inbox.current, mapped)
+        saveInbox(storageKey, inbox.current)
+        setUnreadCount(inbox.current.unreadIds.length)
+        setRequests(mapped); setError(''); setUpdatedAt(new Date())
+      } catch (caught) {
+        if (cancelled) return
+        unauthorized = caught instanceof ApiError && (caught.status === 401 || caught.status === 403)
+        setError(unauthorized ? 'SOS monitoring stopped. Sign in again with an Admin account.' : 'SOS updates are unavailable. Existing records may be out of date. Check the connection and refresh the queue.')
+      } finally {
+        fetching = false
+        if (!cancelled) setLoading(false)
       }
     }
-
+    refreshRef.current = async () => { unauthorized = false; await poll() }
+    const resume = () => { if (document.visibilityState === 'visible') void poll() }
+    const online = () => { void poll() }
+    const storage = (event: StorageEvent) => {
+      if (event.key !== storageKey) return
+      const next = readSosInbox(event.newValue)
+      if (next) { inbox.current = next; setUnreadCount(next.unreadIds.length) }
+    }
     void poll()
-    const interval = window.setInterval(() => void poll(), POLL_INTERVAL_MS)
-
+    const timer = window.setInterval(() => { void poll() }, POLL_INTERVAL_MS)
+    document.addEventListener('visibilitychange', resume)
+    window.addEventListener('online', online)
+    window.addEventListener('storage', storage)
     return () => {
-      cancelled = true
-      window.clearInterval(interval)
+      cancelled = true; refreshRef.current = null
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', resume)
+      window.removeEventListener('online', online)
+      window.removeEventListener('storage', storage)
+    }
+  }, [pollingEnabled, storageKey, token])
+
+  const acknowledgeRequests = useCallback(() => {
+    if (!pollingEnabled || !storageKey) return
+    inbox.current = acknowledgeSosInbox(loadInbox(storageKey) ?? inbox.current)
+    saveInbox(storageKey, inbox.current)
+    setUnreadCount(0)
+  }, [pollingEnabled, storageKey])
+  const refresh = useCallback(async () => { await refreshRef.current?.() }, [])
+  const updateStatus = useCallback(async (id: string, status: SosStatus) => {
+    if (!pollingEnabled) throw new Error('Sign in as Admin to update an SOS request.')
+    if (updates.current.has(id)) return
+    updates.current.add(id); revision.current++
+    try {
+      const response = await apiFetch<{ data: ApiSosRecord }>(`/sos-requests/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status }, token })
+      if (activeToken.current !== token) return
+      const saved = toSosRequest(response.data)
+      setRequests(current => current.map(request => request.id === saved.id ? saved : request))
+    } finally {
+      updates.current.delete(id)
     }
   }, [pollingEnabled, token])
 
-  const updateStatus = useCallback(
-    async (id: string, status: SosStatus) => {
-      setRequests((current) => current.map((request) => (request.id === id ? { ...request, status } : request)))
-
-      if (!isMock && pollingEnabled) {
-        try {
-          await apiFetch(`/sos-requests/${id}`, { method: 'PATCH', body: { status }, token })
-        } catch {
-          // Keep the optimistic update; the next poll resyncs the truth.
-        }
-      }
-    },
-    [isMock, pollingEnabled, token],
-  )
-
-  /**
-   * "Simulate incoming SOS" — a resident device submitting an emergency.
-   * Mock mode adds locally; real mode POSTs to the API so every signed-in
-   * admin panel picks it up.
-   */
-  const simulateIncomingSos = useCallback(async () => {
-    if (isMock) {
-      setRequests((current) => [buildMockRequest(`SOS-2024-${String(526 + current.length).padStart(4, '0')}`), ...current])
-      onNewRequestsRef.current(1)
-      return
-    }
-
-    try {
-      const response = await apiFetch<{ data: ApiSosRecord }>('/sos-requests', {
-        method: 'POST',
-        body: {
-          name: 'New resident request',
-          contact: '0917-XXX-0000',
-          location: 'Purok 6, Pitogo',
-          latitude: 10.121,
-          longitude: 124.558,
-          type: 'Emergency assistance',
-          category: 'Medical',
-          priority: 'High',
-          description: 'A newly received request is awaiting dispatch review.',
-        },
-      })
-      const mapped = toSosRequest(response.data)
-      knownIdsRef.current?.add(mapped.id)
-      setRequests((current) => [mapped, ...current])
-      onNewRequestsRef.current(1)
-    } catch {
-      // Submission failed (offline/validation) — stay quiet.
-    }
-  }, [isMock])
-
-  return { requests, updateStatus, simulateIncomingSos }
+  return { requests, unreadCount: pollingEnabled ? unreadCount : 0, pendingCount: requests.filter(request => request.status === 'Pending').length,
+    loading, error, updatedAt, refresh, updateStatus, acknowledgeRequests }
 }

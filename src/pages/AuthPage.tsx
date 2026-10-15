@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes, 
 import { AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Mail, MapPinned, Radio, ShieldCheck, Users } from 'lucide-react'
 import { ForgotPasswordForm } from '../components/ForgotPasswordForm'
 import { ResetPasswordForm } from '../components/ResetPasswordForm'
+import { CinematicIntro } from '../components/CinematicIntro'
 import './AuthPage.css'
 
 export interface ResetRequest {
@@ -10,7 +11,7 @@ export interface ResetRequest {
 }
 
 interface AuthPageProps {
-  onSignIn: (email: string, password: string) => Promise<string | null>
+  onSignIn: (email: string, password: string, remember: boolean) => Promise<string | null>
   resetRequest?: ResetRequest | null
   onClearReset?: () => void
 }
@@ -80,7 +81,9 @@ function LoginPasswordField({ capsLockOn, disabled, error, inputRef, onChange, o
 }
 
 export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPageProps) {
+  const [introComplete, setIntroComplete] = useState(Boolean(resetRequest))
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -94,10 +97,10 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
 
   // Focus the email field as soon as the sign-in form is usable.
   useEffect(() => {
-    if (!showPasswordRecovery && !resetRequest) {
+    if (introComplete && !showPasswordRecovery && !resetRequest) {
       emailInputRef.current?.focus()
     }
-  }, [showPasswordRecovery, resetRequest])
+  }, [introComplete, showPasswordRecovery, resetRequest])
 
   const validateEmail = (value: string): boolean => {
     if (!value.trim()) {
@@ -131,7 +134,7 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
     setErrorMessage(null)
 
     try {
-      const error = await onSignIn(email.trim(), password)
+      const error = await onSignIn(email.trim(), password, rememberMe)
       if (error) setErrorMessage(error)
     } catch {
       setErrorMessage('Unable to sign in right now. Please try again.')
@@ -142,13 +145,17 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
 
   return (
     <main className="auth-page">
+      {!introComplete && <CinematicIntro onComplete={setIntroComplete} />}
       <div className="auth-page__bg" />
-
-      <section className="auth-hero">
+      <div className="auth-shell">
+        <header className="auth-shell__header" inert={!introComplete}>
         <div className="auth-hero__brand">
           <span className="auth-brand-icon"><img className="auth-brand-image" src="/app-logo.png" alt="Municipality of President Carlos P. Garcia seal" /></span>
           <div><p className="auth-hero__brand-name">IslaSafe</p><p className="auth-hero__brand-tag">MDRRMO OPERATIONS</p></div>
         </div>
+        <span className="auth-shell__caption"><ShieldCheck aria-hidden="true" /> Municipal disaster coordination</span>
+        </header>
+      <section className="auth-hero" inert={!introComplete}>
         <div className="auth-hero__claim">
           <span className="auth-hero__eyebrow"><span /> MUNICIPAL EMERGENCY OPERATIONS</span>
           <h1 className="auth-hero__headline">A connected team.<br /><span>A safer island.</span></h1>
@@ -162,9 +169,8 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
         <p className="auth-hero__municipality">Municipality of President Carlos P. Garcia · Bohol</p>
       </section>
 
-      <section className="auth-form-section">
+      <section className="auth-form-section" inert={!introComplete}>
         <div className="auth-form-wrap">
-          <div className="auth-form-brand"><span className="auth-brand-icon auth-brand-icon--compact"><img className="auth-brand-image" src="/app-logo.png" alt="Municipality of President Carlos P. Garcia seal" /></span><span><span className="auth-form-brand-name">IslaSafe</span><span className="auth-form-brand-tag">MDRRMO OPERATIONS</span></span></div>
           <div className="auth-panel auth-card">
             {resetRequest ? (
               <ResetPasswordForm
@@ -210,6 +216,7 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
                 {emailError && <p className="auth-field-error" id="auth-email-error" role="alert">{emailError}</p>}
                 <LoginPasswordField capsLockOn={capsLockOn} disabled={submitting} error={passwordError} inputRef={passwordInputRef} onChange={(value) => { setPassword(value); setPasswordError(null) }} onCapsLockChange={setCapsLockOn} onToggle={() => setShowPassword((current) => !current)} showPassword={showPassword} value={password} />
                 <div className="auth-options">
+                  <label className="auth-remember" title="Keep me signed in after reopening the browser"><input type="checkbox" checked={rememberMe} disabled={submitting} onChange={(event) => setRememberMe(event.target.checked)} /><span>Remember me</span></label>
                   <button className="auth-link" disabled={submitting} onClick={() => setShowPasswordRecovery(true)} type="button">Forgot password?</button>
                 </div>
                 {errorMessage && <div aria-live="polite" className="auth-error" role="alert"><AlertCircle className="auth-error__icon" /><span>{errorMessage}</span></div>}
@@ -225,6 +232,7 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
           <p className="auth-fineprint"><CheckCircle2 /> Authorized IslaSafe personnel only</p>
         </div>
       </section>
+      </div>
       <footer className="auth-footer">Developed by <span>Four Sisters and a Wedding</span></footer>
     </main>
   )

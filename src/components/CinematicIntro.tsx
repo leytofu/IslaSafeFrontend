@@ -5,7 +5,7 @@ const CURRENT_YEAR = new Date().getFullYear().toString()
 
 let hasPlayedIntro = false
 
-export function CinematicIntro() {
+export function CinematicIntro({ onComplete }: { onComplete: (complete: boolean) => void }) {
   const [complete, setComplete] = useState(() => hasPlayedIntro || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [showBrand, setShowBrand] = useState(false)
   const [morphing, setMorphing] = useState(false)
@@ -13,7 +13,10 @@ export function CinematicIntro() {
   const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
-    if (complete) return
+    if (complete) {
+      onComplete(true)
+      return
+    }
 
     const timers = [
       window.setTimeout(() => setShowBrand(true), 180),
@@ -27,15 +30,17 @@ export function CinematicIntro() {
     ]
 
     return () => timers.forEach(window.clearTimeout)
-  }, [complete])
+  }, [complete, onComplete])
 
   if (complete) return null
 
   return (
-    <div aria-hidden="true" className={`cinematic-intro${leaving ? ' cinematic-intro-leaving' : ''}`}>
+    <div role="dialog" aria-modal="true" aria-label="Welcome to IslaSafe" className={`cinematic-intro${leaving ? ' cinematic-intro-leaving' : ''}`}>
+      <button className="cinematic-intro-skip" type="button" onClick={() => { hasPlayedIntro = true; setComplete(true) }}>Skip intro</button>
       <div className="cinematic-intro-blob cinematic-intro-blob-one" />
       <div className="cinematic-intro-blob cinematic-intro-blob-two" />
       <div className="cinematic-intro-inner">
+        <img className={`cinematic-intro-logo${showBrand ? ' intro-logo-visible' : ''}`} src="/app-logo.png" alt="Municipality of President Carlos P. Garcia seal" />
         <div className="cinematic-intro-morph-stage">
           <p className={`cinematic-intro-brand${showBrand ? ' intro-brand-visible' : ''}${morphing ? ' intro-brand-morphing' : ''}`}>
             {'IslaSafe'.split('').map((letter, index) => <span key={`${letter}-${index}`} style={{ '--intro-letter-delay': `${index * 45}ms` } as CSSProperties}>{letter}</span>)}

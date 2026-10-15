@@ -47,7 +47,7 @@ export function isRole(value: string): value is Role {
 }
 
 export function canManageSos(role: Role): boolean {
-  return role === 'admin' || role === 'campmanager'
+  return role === 'admin'
 }
 
 export function pagesForRole(role: string): PageName[] {

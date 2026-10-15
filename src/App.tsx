@@ -53,7 +53,6 @@ function App() {
   const auth = useAuth()
   const [activePage, setActivePage] = useState<PageName>('Dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [sosAlarmActive, setSosAlarmActive] = useState(false)
   const [isMapOnlyView, setIsMapOnlyView] = useState(false)
   const [selectedSosRequestId, setSelectedSosRequestId] = useState<string | null>(null)
   const [resetRequest, setResetRequest] = useState<ResetRequest | null>(readResetRequest)
@@ -115,11 +114,11 @@ function App() {
   // change can never leave an inaccessible page on screen.
   const page: PageName = visiblePages.includes(activePage) ? activePage : visiblePages[0]
 
-  const { requests: sosRequests, updateStatus, simulateIncomingSos } = useSosRequests({
+  const { requests: sosRequests, updateStatus, unreadCount, pendingCount, acknowledgeRequests, loading: sosLoading, error: sosError, updatedAt: sosUpdatedAt, refresh: refreshSos } = useSosRequests({
     enabled: auth.status === 'authenticated',
     token: auth.token ?? '',
     canManage,
-    onNewRequests: () => setSosAlarmActive(true),
+    accountId: auth.user?.id ?? null,
   })
 
   const navigate = (page: PageName) => {
@@ -132,7 +131,7 @@ function App() {
 
     // Opening the SOS Management nav item acknowledges the alarm.
     if (page === 'SOS Management') {
-      setSosAlarmActive(false)
+      acknowledgeRequests()
     }
   }
 
@@ -164,7 +163,7 @@ function App() {
 
   const renderContent = () => {
     if (page === 'Dashboard') {
-      return <DashboardPage token={auth.token ?? ''} onOpenMap={() => { setActivePage('Hazard Map'); setIsMapOnlyView(true) }} onOpenSosRequest={openSosRequest} sosRequests={sosRequests} />
+      return <DashboardPage token={auth.token ?? ''} onOpenMap={() => { setActivePage('Hazard Map'); setIsMapOnlyView(true) }} onOpenSosRequest={openSosRequest} onOpenSosManagement={() => navigate('SOS Management')} sosRequests={sosRequests} />
     }
 
     if (page === 'Hazard Map') {
@@ -172,7 +171,7 @@ function App() {
     }
 
     const pages: Partial<Record<PageName, ReactElement>> = {
-      'SOS Management': <SosManagementPage onClearSelectedRequest={() => setSelectedSosRequestId(null)} onIncomingSos={simulateIncomingSos} onUpdateStatus={updateStatus} requests={sosRequests} selectedRequestId={selectedSosRequestId} />,
+      'SOS Management': <SosManagementPage onClearSelectedRequest={() => setSelectedSosRequestId(null)} onRefresh={refreshSos} loading={sosLoading} error={sosError} updatedAt={sosUpdatedAt} onUpdateStatus={updateStatus} requests={sosRequests} selectedRequestId={selectedSosRequestId} />,
       'Evacuation Centers': <EvacuationCentersPage token={auth.token ?? ''} />,
       'Incident Monitoring': <IncidentMonitoringPage />,
       'MDRRMO Link / AWS': <WeatherStationPage />,
@@ -185,7 +184,7 @@ function App() {
     return pages[page] ?? null
   }
 
-  const alertOverlay = sosAlarmActive ? <SosAlertOverlay /> : null
+  const alertOverlay = unreadCount > 0 ? <SosAlertOverlay count={unreadCount} onOpenSos={() => navigate('SOS Management')} /> : null
 
   if (isMapOnlyView) {
     return (
@@ -201,7 +200,7 @@ function App() {
       <div className={`app-shell${sidebarCollapsed ? ' app-shell--collapsed' : ''}`}>
         <div className="app-shell__bg app-shell__bg--glow" />
         <div className="app-shell__bg app-shell__bg--grid" />
-        <Sidebar activePage={page} collapsed={sidebarCollapsed} isOpen={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={navigate} onOpenProfile={openProfile} onSignOut={auth.signOut} onToggleCollapse={toggleSidebar} allowedPages={visiblePages} user={auth.user} />
+        <Sidebar sosCount={pendingCount} activePage={page} collapsed={sidebarCollapsed} isOpen={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={navigate} onOpenProfile={openProfile} onSignOut={auth.signOut} onToggleCollapse={toggleSidebar} allowedPages={visiblePages} user={auth.user} />
         <main className="app-main">
           <Topbar onOpenMenu={() => setMenuOpen(true)} page={page} />
           <div className="app-content">{renderContent()}</div>

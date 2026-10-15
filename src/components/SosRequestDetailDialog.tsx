@@ -16,7 +16,7 @@ const minimumMiniMapZoom = 11
 interface SosRequestDetailDialogProps {
   request: SosRequest
   onClose: () => void
-  onUpdateStatus: (id: string, status: SosStatus) => void
+  onUpdateStatus: (id: string, status: SosStatus) => Promise<void>
 }
 
 function priorityTone(priority: SosRequest['priority']) {
@@ -32,6 +32,8 @@ function statusToneModifier(status: SosStatus) {
 }
 
 function SosLocationMap({ request }: { request: SosRequest }) {
+  const [latitude, longitude] = request.coordinates
+  const location = request.location
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const [basemap, setBasemap] = useState<BasemapKey>('map')
@@ -43,7 +45,7 @@ function SosLocationMap({ request }: { request: SosRequest }) {
     if (!container) return
     const map = new maplibregl.Map({
       attributionControl: false,
-      center: toLngLat(request.coordinates),
+      center: toLngLat([latitude, longitude]),
       container,
       doubleClickZoom: true,
       dragPan: true,
@@ -62,7 +64,7 @@ function SosLocationMap({ request }: { request: SosRequest }) {
 
     map.on('load', () => {
       setGeoJsonData(map, 'sos-location', {
-        features: [{ geometry: { coordinates: [request.coordinates[1], request.coordinates[0]], type: 'Point' }, properties: {}, type: 'Feature' }],
+        features: [{ geometry: { coordinates: [longitude, latitude], type: 'Point' }, properties: {}, type: 'Feature' }],
         type: 'FeatureCollection',
       })
       map.addLayer({
@@ -71,8 +73,8 @@ function SosLocationMap({ request }: { request: SosRequest }) {
       } as maplibregl.CircleLayerSpecification)
       const element = document.createElement('span')
       element.className = 'islasafe-map-label islasafe-map-label--pin'
-      element.textContent = request.location
-      locationLabel = new maplibregl.Marker({ anchor: 'bottom', element, offset: [0, -12] }).setLngLat(toLngLat(request.coordinates)).addTo(map)
+      element.textContent = location
+      locationLabel = new maplibregl.Marker({ anchor: 'bottom', element, offset: [0, -12] }).setLngLat(toLngLat([latitude, longitude])).addTo(map)
       setIsReady(true)
       window.requestAnimationFrame(() => map.resize())
     })
@@ -83,7 +85,7 @@ function SosLocationMap({ request }: { request: SosRequest }) {
       mapRef.current = null
       setMapInstance(null)
     }
-  }, [request])
+  }, [latitude, longitude, location])
 
   useEffect(() => {
     const map = mapRef.current
@@ -94,6 +96,16 @@ function SosLocationMap({ request }: { request: SosRequest }) {
 }
 
 export function SosRequestDetailDialog({ request, onClose, onUpdateStatus }: SosRequestDetailDialogProps) {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const busy = useRef(false)
+  async function save(status: SosStatus) {
+    if (busy.current) return
+    busy.current = true; setSaving(true); setSaveError('')
+    try { await onUpdateStatus(request.id, status) }
+    catch (error) { setSaveError(error instanceof Error ? error.message : 'Status could not be saved. Try again.') }
+    finally { busy.current = false; setSaving(false) }
+  }
   const Icon = request.icon
   const isResolved = request.status === 'Resolved'
 
@@ -121,7 +133,8 @@ export function SosRequestDetailDialog({ request, onClose, onUpdateStatus }: Sos
           <section className="sos-detail__description"><h3 className="sos-detail__box-title"><AlignLeft /> Description</h3><p className="sos-detail__description-text">{request.description}</p></section>
         </div>
 
-        <footer className="sos-detail__footer"><button className="action-button action-button--grow" disabled={isResolved || request.status === 'Coming'} onClick={() => onUpdateStatus(request.id, 'Coming')} type="button"><Flag className="action-button__icon" /> {request.status === 'Coming' ? 'Response coming' : 'Coming'}</button><button className="action-button-primary action-button--grow" disabled={isResolved} onClick={() => onUpdateStatus(request.id, 'Resolved')} type="button">{isResolved ? 'Resolved' : 'Resolve'}</button></footer>
+        {!!saveError && <p className="sos-detail__save-error" role="alert">{saveError}</p>}
+        <footer className="sos-detail__footer" aria-busy={saving}><button className="action-button action-button--grow" disabled={saving || isResolved || request.status === 'Coming'} onClick={() => { void save('Coming') }} type="button"><Flag className="action-button__icon" /> {request.status === 'Coming' ? 'Response coming' : 'Coming'}</button><button className="action-button-primary action-button--grow" disabled={saving || isResolved} onClick={() => { void save('Resolved') }} type="button">{saving ? 'Saving…' : isResolved ? 'Resolved' : 'Resolve'}</button></footer>
       </section>
     </div>
   )

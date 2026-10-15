@@ -21,6 +21,41 @@
   opacity: 0;
 }
 
+.cinematic-intro-skip {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+  z-index: 2;
+  min-height: 44px;
+  padding: .5rem 1rem;
+  border: 1px solid rgb(165 180 252 / .25);
+  border-radius: 999px;
+  background: transparent;
+  color: #b5c1ff;
+  cursor: pointer;
+}
+
+.cinematic-intro-skip:focus-visible {
+  outline: 2px solid #b5c1ff;
+  outline-offset: 4px;
+}
+
+.cinematic-intro-logo {
+  display: block;
+  width: clamp(88px, 16vw, 160px);
+  height: clamp(88px, 16vw, 160px);
+  margin-bottom: 24px;
+  object-fit: contain;
+  opacity: 0;
+  transform: translateY(20px) scale(.85);
+  transition: opacity 800ms ease, transform 1100ms cubic-bezier(.16, .84, .44, 1);
+}
+
+.cinematic-intro-logo.intro-logo-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
 .cinematic-intro-blob {
   position: absolute;
   border-radius: 9999px;
