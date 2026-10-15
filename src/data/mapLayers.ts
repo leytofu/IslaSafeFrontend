@@ -1,11 +1,9 @@
 export type MapLayerKey = 'hazards' | 'evacuation' | 'sos' | 'routes' | 'edits' | 'barangays'
 
 export const mapLayers: Array<{ key: MapLayerKey; label: string; color: string }> = [
-  { key: 'hazards', label: 'Hazard zones', color: '#f59e0b' },
   { key: 'evacuation', label: 'Evacuation centers', color: '#22c55e' },
   { key: 'sos', label: 'Active SOS', color: '#f43f5e' },
   { key: 'routes', label: 'Safe routes', color: '#6366f1' },
-  { key: 'edits', label: 'Response markers', color: '#e2e8f0' },
   { key: 'barangays', label: 'Barangay labels', color: '#cbd5e1' },
 ]
 

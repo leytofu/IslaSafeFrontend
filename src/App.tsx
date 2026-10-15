@@ -179,7 +179,7 @@ function App() {
       Advisories: <AdvisoriesPage />,
       Residents: <ResidentsPage />,
       'Reports & Analytics': <ReportsPage />,
-      Settings: <SettingsPage key={settingsTabKey} onSaveProfile={auth.updateProfile} user={auth.user} />,
+      Settings: <SettingsPage key={settingsTabKey} token={auth.token ?? ''} onSaveProfile={auth.updateProfile} user={auth.user} />,
     }
 
     return pages[page] ?? null

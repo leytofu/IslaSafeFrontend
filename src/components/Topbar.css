@@ -35,6 +35,7 @@
   border-radius: var(--radius-xl);
   background-color: var(--glass-5);
   color: var(--slate-200);
+  flex-shrink: 0;
 }
 
 .topbar__menu svg {
@@ -149,6 +150,7 @@
 
 .topbar__icon-button {
   position: relative;
+  flex-shrink: 0;
   display: grid;
   width: 2.5rem;
   height: 2.5rem;
@@ -180,4 +182,12 @@
   border-radius: var(--radius-full);
   background-color: var(--rose-500);
   box-shadow: 0 0 0 2px #0b1020;
+}
+
+.topbar__search { flex-shrink: 1; min-width: 0; }
+@media (min-width: 1024px) and (max-width: 1279px) { .topbar__search { display: none; } }
+@media (max-width: 639px) {
+  .topbar { gap: .5rem; padding: .75rem; padding-top: max(.75rem, env(safe-area-inset-top)); }
+  .topbar__menu, .topbar__icon-button { width: 44px; height: 44px; }
+  .topbar__title { font-size: 1rem; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
 }

@@ -1,0 +1,20 @@
+.compact-select { min-width: 0; }
+.compact-select__trigger { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 44px; padding: .625rem .75rem; border: 1px solid var(--glass-15); border-radius: .625rem; background: var(--surface-card); color: var(--slate-100); text-align: left; font-size: .8125rem; cursor: pointer; }
+.compact-select__trigger span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compact-select__trigger svg { flex-shrink: 0; color: var(--slate-400); }
+.compact-select__trigger:focus-visible, .compact-select__list:focus-visible { outline: 2px solid var(--indigo-400); outline-offset: 2px; }
+.compact-select__trigger:disabled { opacity: .5; cursor: default; }
+/* An inline native list keeps the options inside the dialog, instead of an OS popup. */
+.compact-select select.compact-select__list { display: block; width: 100%; max-width: 100%; height: min(160px, 25dvh); min-height: 0; padding: .25rem; margin-top: .375rem; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--glass-15); border-radius: .625rem; background: var(--surface-dialog); color: var(--slate-100); font-size: .8125rem; scrollbar-width: thin; scrollbar-color: var(--slate-500) transparent; }
+.compact-select__list option { padding: .5rem .625rem; border-radius: .375rem; }
+.compact-select__list option:checked { background: var(--indigo-500); color: var(--white); }
+.compact-select__search-control { display: flex; align-items: center; width: 100%; min-width: 0; border: 1px solid var(--glass-15); border-radius: .625rem; background: var(--surface-card); }
+.compact-select__search-control:focus-within { outline: 2px solid var(--indigo-400); outline-offset: 2px; }
+.compact-select .compact-select__search-control input { flex: 1; min-width: 0; width: 100%; min-height: 44px; padding: .625rem .75rem; background: transparent; border: 0; outline: none; border-radius: inherit; color: var(--slate-100); font-size: .8125rem; }
+.compact-select__search-control button { display: grid; place-items: center; align-self: stretch; width: 38px; flex-shrink: 0; color: var(--slate-400); border-radius: .625rem; }
+.compact-select__search-control button:focus-visible { outline: 2px solid var(--indigo-400); }
+.compact-select__suggestions { max-height: min(160px, 25dvh); overflow-y: auto; overscroll-behavior: contain; padding: .25rem; margin-top: .375rem; border: 1px solid var(--glass-15); border-radius: .625rem; background: var(--surface-dialog); scrollbar-width: thin; scrollbar-color: var(--slate-500) transparent; }
+.compact-select__suggestion { padding: .5rem .625rem; border-radius: .375rem; color: var(--slate-100); font-size: .8125rem; line-height: 1.5; overflow-wrap: anywhere; cursor: pointer; }
+.compact-select__suggestion.is-active { background: var(--indigo-500); color: var(--white); }
+.compact-select__suggestion[aria-disabled=true] { opacity: .5; cursor: default; }
+.compact-select__empty { padding: .5rem .625rem; font-size: .75rem; color: var(--slate-400); }

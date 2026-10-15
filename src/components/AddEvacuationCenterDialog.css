@@ -164,3 +164,13 @@
     justify-content: flex-end;
   }
 }
+
+@media (max-width: 639px) {
+  .add-center__form { padding: 1rem; }
+  .add-center__heading { min-width: 0; gap: .75rem; }
+  .add-center__heading > div { min-width: 0; }
+  .add-center__heading h2 { font-size: 1rem; }
+  .add-center__heading-icon { flex-shrink: 0; padding: .5rem; }
+  .add-center__picker-header { flex-wrap: wrap; gap: .5rem; }
+  .add-center__map { height: clamp(240px, 48dvh, 360px); }
+}

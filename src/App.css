@@ -133,3 +133,10 @@
     left: 84px;
   }
 }
+
+.app-main { width: 100%; padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
+.app-footer { padding-bottom: calc(.75rem + env(safe-area-inset-bottom)); }
+@media (max-width: 639px) {
+  .app-content { padding: .75rem; }
+  .app-footer { font-size: 10px; }
+}

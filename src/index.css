@@ -291,7 +291,7 @@ input::-webkit-outer-spin-button {
 }
 
 body {
-  min-width: 20rem;
+  min-width: 0;
   margin: 0;
   background-color: var(--surface-page);
   color: var(--slate-100);
@@ -355,6 +355,8 @@ button {
 }
 
 .panel {
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--glass-9);
   border-radius: var(--radius-2xl);
   background-color: var(--glass-45);
@@ -454,6 +456,7 @@ button {
 /* Section heading used across panels */
 .section-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
@@ -671,6 +674,7 @@ button {
 /* Form field wrapper (label + control) */
 .field {
   display: block;
+  min-width: 0;
 }
 
 .field__label {
@@ -700,6 +704,8 @@ button {
 }
 
 .field-control :is(input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
   width: 100%;
   border: 1px solid var(--glass-10);
   border-radius: 0.65rem;
@@ -1139,3 +1145,27 @@ button {
   text-shadow: 0 1px 3px #020617;
   white-space: nowrap;
 }
+
+/* Let content shrink inside grid tracks; only record tables scroll sideways. */
+.section-heading > div, .table-heading > div { min-width: 0; }
+.page, .dashboard-main > *, .advisories-layout > *, .weather-layout > *, .settings-layout > *, .reports-grid > *, .hazard-layout > * { min-width: 0; }
+.panel :is(h2, h3, p), .field__label { overflow-wrap: anywhere; }
+.table-frame { max-width: 100%; min-width: 0; overscroll-behavior-x: contain; }
+.table-frame:focus-visible { outline: 2px solid var(--indigo-400); outline-offset: 2px; }
+.field-control { display: block; min-width: 0; }
+@media (max-width: 639px) {
+  .section-heading { gap: .75rem; }
+  .action-button, .action-button-primary { min-height: 44px; max-width: 100%; height: auto; white-space: normal; text-align: center; }
+  .action-button__icon { flex-shrink: 0; }
+  .field-control :is(input, select, textarea), .evac-filter, .search-field__input, .resident-select, .hazard-select { min-height: 44px; font-size: 1rem; }
+  .toolbar__actions > .search-field, .resident-filters > .search-field { flex-basis: 100%; }
+  .resident-select { min-width: 0; max-width: 100%; flex: 1 1 9rem; }
+  .incident-breakdown__body { gap: 1rem; }
+  .settings-profile { flex-wrap: wrap; }
+  .settings-row > div { min-width: 0; flex: 1; }
+  .settings-toggle { flex-shrink: 0; }
+  .modal-overlay { padding: .75rem; }
+  .modal { max-width: calc(100vw - 1.5rem); max-height: calc(100dvh - 1.5rem); }
+}
+
+.modal--form { overflow-y: auto; }

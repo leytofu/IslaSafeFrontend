@@ -5,9 +5,8 @@ import { apiFetch } from '../utils/api'
 import { environment } from '../config/environment'
 import type { LiveCenter, Page } from '../types/evacuation'
 
-export function useEvacuationCenters(token: string, page: number, query: string) {
+export function useEvacuationCenters(token: string, query: string) {
   const [centers, setCenters] = useState<LiveCenter[]>([])
-  const [lastPage, setLastPage] = useState(1)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [connection, setConnection] = useState('Refresh fallback')
@@ -17,11 +16,23 @@ export function useEvacuationCenters(token: string, page: number, query: string)
   const refresh = useCallback(async () => {
     const request = ++generation.current
     try {
-      const response = await apiFetch<Page<LiveCenter>>(`/admin/evacuation/centers?page=${page}&q=${encodeURIComponent(query)}`, { token })
-      if (request === generation.current) { setCenters(response.data); setLastPage(response.last_page); setError(''); setRevision((value) => value + 1) }
+      // The API stays paginated for center lookups. Collect every directory
+      // page so scrolling can reach every saved facility without page controls.
+      const response = await apiFetch<Page<LiveCenter>>(`/admin/evacuation/centers?page=1&q=${encodeURIComponent(query)}`, { token })
+      if (request !== generation.current) return
+      const collected = [...response.data]
+      for (let nextPage = 2; nextPage <= response.last_page; nextPage++) {
+        const next = await apiFetch<Page<LiveCenter>>(`/admin/evacuation/centers?page=${nextPage}&q=${encodeURIComponent(query)}`, { token })
+        if (request !== generation.current) return
+        collected.push(...next.data)
+      }
+      if (request === generation.current) {
+        setCenters([...new Map(collected.map((center) => [center.id, center])).values()])
+        setError(''); setRevision((value) => value + 1)
+      }
     } catch (caught) { if (request === generation.current) setError(caught instanceof Error ? caught.message : 'Unable to refresh centers.') }
     finally { if (request === generation.current) setLoading(false) }
-  }, [token, page, query])
+  }, [token, query])
   const refreshRef = useRef(refresh)
   useEffect(() => { refreshRef.current = refresh }, [refresh])
   useEffect(() => {
@@ -49,5 +60,5 @@ export function useEvacuationCenters(token: string, page: number, query: string)
     socket.bind('disconnected', disconnected); socket.bind('unavailable', disconnected); socket.bind('error', disconnected)
     return () => { active = false; socket.unbind('disconnected', disconnected); socket.unbind('unavailable', disconnected); socket.unbind('error', disconnected); echo.leave('evacuation.admin'); echo.disconnect() }
   }, [token])
-  return { centers, lastPage, error, loading, connection, revision, refresh }
+  return { centers, error, loading, connection, revision, refresh }
 }

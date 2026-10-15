@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   BarChart3,
@@ -12,6 +13,7 @@ import {
   Settings,
   ShieldCheck,
   Users,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { isRole, roleLabels } from '../config/roles'
@@ -99,6 +101,7 @@ function NavigationGroup({
               // Collapsed rail hides the label — the title keeps it discoverable.
               title={collapsed ? label : undefined}
               type="button"
+              aria-current={isActive ? 'page' : undefined}
             >
               <Icon className="nav-item__icon" />
               <span className="nav-item__label">{label}</span>
@@ -117,6 +120,33 @@ export function Sidebar({ activePage, allowedPages, collapsed, isOpen, user, onC
     onClose()
   }
 
+  const drawer = useRef<HTMLElement>(null)
+  const close = useRef(onClose)
+  const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches)
+  useEffect(() => { close.current = onClose }, [onClose])
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1024px)')
+    const changed = () => setDesktop(media.matches)
+    media.addEventListener('change', changed)
+    return () => media.removeEventListener('change', changed)
+  }, [])
+  useEffect(() => {
+    if (desktop || !isOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    drawer.current?.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus({ preventScroll: true })
+    function keydown(event: KeyboardEvent) {
+      if (event.key === 'Escape') { event.preventDefault(); close.current(); return }
+      if (event.key !== 'Tab') return
+      const buttons = [...(drawer.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex="0"]') ?? [])].filter((item) => item.getClientRects().length)
+      const first = buttons[0]; const last = buttons.at(-1)
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', keydown)
+    return () => { document.body.style.overflow = overflow; document.removeEventListener('keydown', keydown); previous?.focus({ preventScroll: true }) }
+  }, [desktop, isOpen])
   const visible = (items: NavItem[]) => items.filter(({ label }) => allowedPages.includes(label))
   const roleLabel = isRole(user.role) ? roleLabels[user.role] : roleLabels.residents
   const initials = user.name
@@ -131,11 +161,12 @@ export function Sidebar({ activePage, allowedPages, collapsed, isOpen, user, onC
     <>
       <button
         aria-label="Close navigation"
+        tabIndex={isOpen ? 0 : -1}
         className={`sidebar-scrim${isOpen ? ' is-open' : ''}`}
         onClick={onClose}
         type="button"
       />
-      <aside className={`sidebar${isOpen ? ' is-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
+      <aside ref={drawer} inert={!desktop && !isOpen} aria-hidden={!desktop && !isOpen ? true : undefined} role={!desktop && isOpen ? 'dialog' : undefined} aria-modal={!desktop && isOpen ? true : undefined} aria-label="Main navigation" className={`sidebar${isOpen ? ' is-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
         <div className="sidebar__brand">
           {/* The logo navigates home to the Dashboard. */}
           <button
@@ -151,6 +182,7 @@ export function Sidebar({ activePage, allowedPages, collapsed, isOpen, user, onC
             <span className="sidebar__brand-name">IslaSafe</span>
             <span className="sidebar__brand-tag">MDRRMO PANEL</span>
           </span>
+          <button aria-label="Close navigation menu" className="sidebar__mobile-close" onClick={onClose} type="button"><X /></button>
           {/* Collapse toggle glides: inline-right when expanded,
               centered under the logo when collapsed. */}
           <button

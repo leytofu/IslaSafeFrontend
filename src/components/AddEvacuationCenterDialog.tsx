@@ -1,6 +1,8 @@
+import { CompactSelect } from "./CompactSelect"
+import { barangayKey, barangayOptions } from "../data/barangays"
 import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
-import { Building2, MapPin, Maximize2, Minimize2, Save, UserPlus, X } from 'lucide-react'
+import { Building2, Maximize2, Minimize2, Save, UserPlus, X } from 'lucide-react'
 import { environment } from '../config/environment'
 import { BasemapToggle, type BasemapKey } from './BasemapToggle'
 import { createRasterStyle, toLngLat, toLngLatBounds } from '../utils/maplibre'
@@ -134,7 +136,6 @@ export function AddEvacuationCenterDialog({ onClose, onSave, onCreatePlace, setu
   const [contact, setContact] = useState(center?.contact ?? '')
   const [location, setLocation] = useState<MapPosition>([center?.latitude ?? 10.109, center?.longitude ?? 124.562])
   const [locationPicked, setLocationPicked] = useState(center?.latitude != null && center?.longitude != null)
-  const [coordinateInputs, setCoordinateInputs] = useState<[string, string]>([center?.latitude == null ? '' : String(center.latitude), center?.longitude == null ? '' : String(center.longitude)])
   const [isMapExpanded, setIsMapExpanded] = useState(false)
   const assigned = setup.assignments.filter((item) => item.center_id === center?.id)
   const markerLabel = name.trim() || 'New evacuation center'
@@ -151,7 +152,7 @@ export function AddEvacuationCenterDialog({ onClose, onSave, onCreatePlace, setu
     if (saveLock.current) return
     if (!name.trim()) { setError('Enter an evacuation center name.'); return }
     if (!placeId || (placeId === 'new' && !newBarangay.trim())) { setError('Select or enter the barangay.'); return }
-    if (!locationPicked) { setError('Select the exact location on the map or enter its coordinates.'); return }
+    if (!locationPicked) { setError('Select the exact facility location on the map.'); return }
     if (!Number.isFinite(location[0]) || !Number.isFinite(location[1]) || Math.abs(location[0]) > 90 || Math.abs(location[1]) > 180) { setError('Enter valid latitude and longitude coordinates.'); return }
     if (!Number.isInteger(Number(capacity)) || Number(capacity) < 1 || Number(capacity) > 100000) { setError('Maximum capacity must be a whole number from 1 to 100,000.'); return }
     const managerAssignment = setup.assignments.find((assignment) => assignment.user_id === Number(managerId))
@@ -179,23 +180,23 @@ export function AddEvacuationCenterDialog({ onClose, onSave, onCreatePlace, setu
           <div className="stack-4">
             <p className="add-center__section-label">FACILITY DETAILS</p>
             <Field label="Evacuation center name *"><input autoFocus maxLength={180} onChange={(event) => setName(event.target.value)} placeholder="e.g. Pitogo Barangay Hall" required value={name} /></Field>
-            <Field label="Barangay *"><select required onChange={(event) => setPlaceId(event.target.value)} value={placeId}><option value="">Select barangay</option>{setup.places.map((place) => <option key={place.id} value={place.id}>{place.barangay} - {place.municipality}</option>)}<option value="new">+ Enter a barangay</option></select></Field>
-            {placeId === 'new' && <Field label="New barangay in President Carlos P. Garcia"><input required maxLength={120} value={newBarangay} onChange={(event) => setNewBarangay(event.target.value)} placeholder="Barangay name" /></Field>}
+            <CompactSelect searchable label="Barangay *" value={placeId === 'new' ? 'create:' + newBarangay : placeId} disabled={saving}
+              options={[{ value: '', label: 'Select barangay' }, ...setup.places.map((place) => ({ value: String(place.id), label: `${place.barangay} - ${place.municipality}` })), ...barangayOptions.filter((item) => !setup.places.some((place) => place.municipality === 'President Carlos P. Garcia' && barangayKey(place.barangay) === barangayKey(item.value))).map((item) => ({ value: 'create:' + item.value, label: item.label }))]}
+              onChange={(value) => { if (value.startsWith('create:')) { setPlaceId('new'); setNewBarangay(value.slice(7)); } else { setPlaceId(value); setNewBarangay(''); } }} />
             <Field label="Maximum capacity *"><input min="1" max="100000" step="1" onChange={(event) => setCapacity(event.target.value)} placeholder="Number of evacuees" required type="number" value={capacity} /></Field>
             <div className="add-center__assignment">
               {assigned.length > 0 && <p className="add-center__hint">Assigned: {assigned.map((item) => item.user.name).join(', ')}</p>}
               <button className="action-button add-center__assign" aria-expanded={showManagers} onClick={() => setShowManagers(!showManagers)} type="button"><UserPlus className="action-button__icon" />Assign camp manager</button>
-              {showManagers && <Field label="Camp manager"><select value={managerId} onChange={(event) => setManagerId(event.target.value)}><option value="">{assigned.length ? 'Keep current assignments' : 'Assign later'}</option>{setup.managers.map((manager) => { const assignment = setup.assignments.find((item) => item.user_id === manager.id); return <option key={manager.id} value={manager.id} disabled={Boolean(assignment && assignment.center_id !== center?.id)}>{manager.name}{assignment ? ` - ${assignment.center.name}` : ''}</option> })}</select></Field>}
+              {showManagers && <CompactSelect searchable label="Camp manager" value={managerId} disabled={saving} onChange={setManagerId} options={[{ value: '', label: assigned.length ? 'Keep current assignments' : 'Assign later' }, ...setup.managers.map((manager) => { const assignment = setup.assignments.find((item) => item.user_id === manager.id); return { value: String(manager.id), label: manager.name + (assignment ? ` - ${assignment.center.name}` : ''), disabled: Boolean(assignment && assignment.center_id !== center?.id) } })]} />}
               {showManagers && <p className="add-center__hint">{setup.managers.length ? 'Available managers can register evacuees from this barangay. Managers assigned elsewhere are unavailable.' : 'No camp manager accounts yet. You can save this center and assign a manager later.'}</p>}
             </div>
-            {center && <><Field label="Status"><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="Operational">Operational</option><option value="Closed">Deactivated (closed)</option><option value="Unavailable">Temporarily unavailable</option></select></Field><p className="add-center__hint">Deactivated centers are hidden from residents. Transfer or check out occupants first.</p></>}
+            {center && <><CompactSelect label="Status" value={status} disabled={saving} onChange={setStatus} options={[{ value: "Operational", label: "Operational" }, { value: "Closed", label: "Deactivated (closed)" }, { value: "Unavailable", label: "Temporarily unavailable" }]} /><p className="add-center__hint">Deactivated centers are hidden from residents. Transfer or check out occupants first.</p></>}
             <Field label="Contact (optional)"><input maxLength={120} value={contact} onChange={(event) => setContact(event.target.value)} placeholder="Facility contact number" /></Field>
           </div>
           <div className="stack-4">
             <div><div className="add-center__picker-header"><span className="add-center__section-label">MAP LOCATION *</span><span className="add-center__picker-hint">Click the map or drag the pin</span></div>
-              <div className={`add-center__map${isMapExpanded ? ' add-center__map--expanded' : ''}`}><LocationPickerMap expanded={isMapExpanded} label={markerLabel} location={location} onExpandedChange={setIsMapExpanded} onPick={(position) => { if (!saving) { setLocation(position); setCoordinateInputs([position[0].toFixed(6), position[1].toFixed(6)]); setLocationPicked(true) } }} /></div>
+              <div className={`add-center__map${isMapExpanded ? ' add-center__map--expanded' : ''}`}><LocationPickerMap expanded={isMapExpanded} label={markerLabel} location={location} onExpandedChange={setIsMapExpanded} onPick={(position) => { if (!saving) { setLocation(position); setLocationPicked(true) } }} /></div>
             </div>
-            <div className="add-center__coords"><p className="add-center__coords-label"><MapPin />{locationPicked ? 'Location selected' : 'Choose the exact facility location'}</p><p className="add-center__hint">Place the pin at the entrance, or enter latitude and longitude below.</p><div className="add-center__coordinate-fields">{(['Latitude', 'Longitude'] as const).map((label, index) => <Field key={label} label={label}><input aria-label={label} type="number" step="any" min={index === 0 ? -90 : -180} max={index === 0 ? 90 : 180} required value={coordinateInputs[index]} onChange={(event) => { const next: [string, string] = [...coordinateInputs]; next[index] = event.target.value; setCoordinateInputs(next); const valid = next.every((value) => value !== '' && Number.isFinite(Number(value))); setLocationPicked(valid); if (valid) setLocation([Number(next[0]), Number(next[1])]) }} /></Field>)}</div></div>
             <div className="add-center__hint add-center__sync-note"><Building2 size={18} /><span>Saved centers appear on the admin map and sync to residents automatically. Fields marked * are required.</span></div>
           </div>
         </div>

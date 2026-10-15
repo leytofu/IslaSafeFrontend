@@ -1,5 +1,25 @@
 /* Settings: tabbed navigation + panel content */
 
+.team-roles { display: grid; gap: 1.5rem; min-width: 0; }
+.team-role-cards, .team-fields { display: grid; gap: 1rem; }
+.team-role-card { padding: 1rem; border: 1px solid var(--glass-8); border-radius: var(--radius-xl); background: var(--glass-5); }
+.team-role-card p, .team-detail { margin-top: 0.625rem; color: var(--slate-400); font-size: var(--text-xs); line-height: 1.6; }
+.team-create-form { margin-top: 1rem; grid-template-columns: minmax(0, 1fr); }
+.team-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.team-create-form > button { justify-self: start; }
+.team-accounts { list-style: none; padding: 0; margin: 0; }
+.team-account-identity { min-width: 0; overflow-wrap: anywhere; }
+.settings-row.team-account { display: block; }
+.team-account-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.team-manager-actions { margin-top: 0.75rem; }
+.team-action-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.team-delete-button { color: var(--rose-300); }
+.team-delete-confirmation { margin-top: 0.75rem; padding: 1rem; border: 1px solid var(--glass-8); border-radius: var(--radius-xl); }
+.team-delete-confirmation .team-action-buttons { margin-top: 0.75rem; }
+@media (min-width: 640px) {
+  .team-role-cards, .team-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 .settings-layout {
   display: grid;
   gap: 1.25rem;
@@ -190,3 +210,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.settings-profile > div { min-width: 0; }
+.settings-feedback { overflow-wrap: anywhere; }
+.settings-feedback svg { flex-shrink: 0; }

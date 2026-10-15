@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
+import type { HTMLAttributes, ReactNode } from 'react'
 import './Primitives.css'
 
 type Tone = 'danger' | 'warning' | 'success' | 'info' | 'muted'
 
-export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`panel ${className}`}>{children}</section>
+export function Panel({ children, className = '', ...props }: HTMLAttributes<HTMLElement> & { children: ReactNode }) {
+  return <section {...props} className={`panel ${className}`}>{children}</section>
 }
 
 export function SectionHeading({ title, detail, action }: { title: string; detail?: string; action?: ReactNode }) {
@@ -35,7 +35,7 @@ export function MetricTile({ label, value, detail, tone = 'info' }: { label: str
 }
 
 export function TableFrame({ children, className = '', tableClassName = '', ariaLabel }: { children: ReactNode; className?: string; tableClassName?: string; ariaLabel?: string }) {
-  return <Panel className={`table-frame ${className}`}><table aria-label={ariaLabel} className={`data-table ${tableClassName}`}>{children}</table></Panel>
+  return <Panel className={`table-frame ${className}`} role="region" aria-label={ariaLabel ? `${ariaLabel} scrollable table` : 'Scrollable records table'} tabIndex={0}><table aria-label={ariaLabel} className={`data-table ${tableClassName}`}>{children}</table></Panel>
 }
 
 export function FilterButton({ active, children, onClick }: { active?: boolean; children: ReactNode; onClick: () => void }) {

@@ -42,3 +42,63 @@
 .evac-setup { padding: 1.5rem; }
 .evac-checkbox { display: flex; gap: .75rem; align-items: center; min-height: 40px; font-size: .75rem; }
 .evac-setup input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--indigo-400); }
+
+.evac-directory-item { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.evac-card--selectable { position: relative; flex: 1; min-width: 0; }
+.modal.evac-detail { position: fixed; inset: 0; margin: auto; height: fit-content; max-height: calc(100dvh - 2rem); background: var(--surface-dialog); color: var(--slate-100); }
+.evac-detail:not([open]) { display: none; }
+.evac-detail::backdrop { background: rgb(2 6 23 / 75%); backdrop-filter: blur(6px); }
+.evac-card__open { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; cursor: pointer; z-index: 1; }
+.evac-card__open:focus-visible { outline: 3px solid var(--indigo-400); outline-offset: 3px; }
+.evac-roster-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: start; gap: 1rem; margin-block: 1.5rem 1rem; }
+.evac-roster-heading h3 { font-size: 1.125rem; font-weight: 600; }
+.evac-roster-heading > strong { color: var(--indigo-300); font-size: .8125rem; }
+.evac-roster-filters { margin-bottom: 1rem; }
+.evac-transfer, .evac-center-settings { border: 1px solid var(--glass-15); border-radius: .75rem; padding: 1rem; margin-block: 1rem; }
+.evac-transfer summary, .evac-center-settings summary { cursor: pointer; font-size: .8125rem; font-weight: 600; min-height: 28px; }
+.evac-transfer[open] summary, .evac-center-settings[open] summary { margin-bottom: 1rem; }
+.evac-age-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1rem; align-items: start; }
+.evac-age-grid[aria-busy=true] { opacity: .55; }
+.evac-age-group { min-width: 0; border: 1px solid var(--glass-15); border-radius: 1rem; overflow: hidden; background: var(--surface-card); }
+.evac-age-header { padding: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; background: var(--glass-6); border-bottom: 1px solid var(--glass-15); }
+.evac-age-header h4 { font-size: 1rem; font-weight: 600; }
+.evac-age-header span { font-size: .7rem; color: var(--slate-400); }
+.evac-age-header > strong { color: var(--indigo-300); font-size: 1.5rem; }
+.evac-gender-group { padding: 1rem; }
+.evac-gender-group + .evac-gender-group { border-top: 1px solid var(--glass-15); }
+.evac-gender-group h5 { display: flex; justify-content: space-between; gap: 1rem; font-size: .8125rem; font-weight: 600; margin-bottom: .75rem; }
+.evac-gender-group h5 span { color: var(--slate-400); }
+.evac-empty { color: var(--slate-400); font-size: .75rem; padding-block: .75rem; }
+.evac-person-list { list-style: none; padding: 0; margin: 0; }
+.evac-person-list li { padding-block: .875rem; border-top: 1px solid var(--glass-8); overflow-wrap: anywhere; }
+.evac-person-heading { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; margin-bottom: .5rem; font-size: .8125rem; }
+.evac-person-list p, .evac-person-list time { color: var(--slate-400); font-size: .7rem; line-height: 1.7; }
+.evac-person-list time { display: block; }
+.evac-person-actions { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .75rem; }
+.evac-person-actions button { min-height: 40px; }
+.evac-group-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .75rem; font-size: .75rem; }
+@media (max-width: 760px) { .evac-age-grid { grid-template-columns: 1fr; } .evac-detail { padding: 1rem; } }
+
+.evac-directory-scroll { max-height: calc(100dvh - 20rem); min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; align-content: start; padding: .25rem .5rem .5rem .25rem; scrollbar-width: thin; scrollbar-color: var(--slate-500) transparent; }
+.evac-directory-scroll:focus-visible { outline: 2px solid var(--indigo-400); outline-offset: 3px; border-radius: .75rem; }
+@media (max-height: 600px) { .evac-directory-scroll { max-height: 65dvh; } }
+
+.evac-card-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.evac-card-actions > button { flex: 1; justify-content: center; padding-inline: .625rem; }
+.evac-delete-button { color: var(--rose-400, #fb7185); }
+.modal.evac-action-dialog { position: fixed; inset: 0; margin: auto; padding: 0; width: min(480px, calc(100vw - 2rem)); height: fit-content; max-height: calc(100dvh - 2rem); overflow-y: auto; background: var(--surface-dialog); color: var(--slate-100); }
+.evac-action-dialog:not([open]) { display: none; }
+.evac-action-dialog::backdrop { background: rgb(2 6 23 / 75%); backdrop-filter: blur(6px); }
+.evac-action-body { display: grid; gap: 1rem; padding: 1.25rem; font-size: .8125rem; line-height: 1.7; }
+.evac-action-body p { color: var(--slate-400); }
+.evac-action-body .fp-error { color: var(--rose-400, #fb7185); }
+.evac-action-footer { display: flex; justify-content: flex-end; gap: .75rem; flex-wrap: wrap; }
+.evac-delete-confirm { background: #be123c; }
+
+@media (max-width: 639px) {
+  .evac-directory-scroll { max-height: 65dvh; }
+  .evac-breakdowns, .evac-setup-grid { grid-template-columns: minmax(0, 1fr); }
+  .evac-breakdown-row { grid-template-columns: minmax(80px, 1fr) minmax(0, 1fr) 25px; }
+  .evac-detail .evac-toolbar > .field { flex: 1 1 100%; min-width: 0; }
+  .evac-card__footer { gap: .75rem; flex-wrap: wrap; }
+}

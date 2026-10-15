@@ -638,3 +638,13 @@
     will-change: auto;
   }
 }
+
+.sidebar__mobile-close { display: none; }
+@media (max-width: 1023px) {
+  .sidebar { width: min(280px, calc(100vw - 2rem)); padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .sidebar__collapse-btn { display: none; }
+  .sidebar__brand { padding-right: 2.5rem; }
+  .sidebar__mobile-close { position: absolute; right: 0; top: 0; display: grid; place-items: center; width: 36px; height: 40px; border: 1px solid var(--glass-10); border-radius: .625rem; color: var(--slate-300); }
+  .sidebar__mobile-close svg { width: 18px; height: 18px; }
+  .sidebar .nav-item { min-height: 44px; }
+}

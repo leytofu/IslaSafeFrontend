@@ -207,3 +207,16 @@
 .evac-map-popup h3 { font-size: 15px; font-weight: 700; margin: 0 12px 8px 0; overflow-wrap: anywhere; }
 .evac-map-popup p { margin: 5px 0; font-size: 12px; }
 .evac-map-popup .maplibregl-popup-close-button { color: #cbd5e1; padding: 4px 8px; }
+
+.live-map__context { max-width: calc(100% - 2rem); }
+.live-map__context svg { flex-shrink: 0; }
+.live-map--screen { height: 100dvh; }
+@media (max-width: 639px) {
+  .live-map--full { height: clamp(320px, 65dvh, 520px); min-height: 0; }
+  .live-map--compact { height: clamp(280px, 55dvh, 370px); }
+  .live-map__live { top: 3.75rem; max-width: calc(100% - 1.5rem); font-size: 9px; }
+  .live-map__legend { width: min(11rem, calc(100% - 4.5rem)); max-height: 40%; overflow-y: auto; }
+  .live-map__context { font-size: 10px; padding: .5rem; bottom: .75rem; }
+}
+
+@media (max-width: 639px) { .live-map--screen .live-map__live { top: 7rem; } }

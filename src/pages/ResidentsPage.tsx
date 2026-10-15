@@ -1,3 +1,4 @@
+import { barangayKey, barangayOptions } from "../data/barangays"
 import { useState } from 'react'
 import { ChevronRight, Plus } from 'lucide-react'
 import { StatusPill, TableFrame } from '../components/Primitives'
@@ -12,7 +13,7 @@ export function ResidentsPage() {
   const [status, setStatus] = useState('All status')
   const visible = residentRecords.filter((item) => {
     const matchesStatus = status === 'All status' || item.status === status
-    const matchesBarangay = barangay === 'All barangays' || item.location.startsWith(barangay)
+    const matchesBarangay = barangay === 'All barangays' || (item.location.startsWith(barangay) || (barangayKey(barangay) === "poblacion" && item.location.startsWith("Pitogo")))
     const matchesSearch = `${item.name} ${item.location} ${item.id}`.toLowerCase().includes(query.toLowerCase())
     return matchesStatus && matchesBarangay && matchesSearch
   })
@@ -21,7 +22,7 @@ export function ResidentsPage() {
     <div className="page stack-5">
       <div className="resident-filters">
         <SearchField onChange={setQuery} placeholder="Search residents by name or ID..." value={query} />
-        <select className="resident-select" onChange={(event) => setBarangay(event.target.value)} value={barangay}><option>All barangays</option><option>Pitogo</option><option>Lapinig</option><option>San Vicente</option><option>Baud</option><option>Aguining</option></select>
+        <select aria-label="Filter by barangay" className="resident-select" onChange={(event) => setBarangay(event.target.value)} value={barangay}><option>All barangays</option>{barangayOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
         <select className="resident-select" onChange={(event) => setStatus(event.target.value)} value={status}><option>All status</option><option>Safe</option><option>Evacuated</option><option>Stranded</option><option>Needs assistance</option></select>
         <button className="action-button-primary action-button-primary--ml-auto" type="button"><Plus className="action-button__icon" /> Add resident</button>
       </div>

@@ -1,3 +1,4 @@
+import { barangayKey } from "../data/barangays"
 import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import type { FeatureCollection, Geometry } from 'geojson'
@@ -160,7 +161,7 @@ export function LiveMap({ token, onCentersLoaded, full = false, fullScreen = fal
   useEffect(() => {
     const map = mapRef.current
     if (!map || !isReady) return
-    const view = barangayViews[barangay] ?? barangayViews['All barangays']
+    const view = barangayViews[barangayKey(barangay) === 'poblacion' ? 'Pitogo' : barangay] ?? barangayViews['All barangays']
     map.stop()
     map.jumpTo({ center: toLngLat(view.center), zoom: view.zoom })
   }, [barangay, isReady])
@@ -196,7 +197,7 @@ export function LiveMap({ token, onCentersLoaded, full = false, fullScreen = fal
   useEffect(() => {
     const map = mapRef.current
     if (!map || !isReady) return
-    const visible = visibleLayers.includes('evacuation') ? centers.filter((center) => center.latitude != null && center.longitude != null && (barangay === 'All barangays' || center.place.barangay === barangay)) : []
+    const visible = visibleLayers.includes('evacuation') ? centers.filter((center) => center.latitude != null && center.longitude != null && (barangay === 'All barangays' || barangayKey(center.place.barangay) === barangayKey(barangay))) : []
     const ids = new Set(visible.map((center) => center.id))
     centerMarkersRef.current.forEach((marker, id) => { if (!ids.has(id)) { marker.remove(); centerMarkersRef.current.delete(id) } })
     visible.forEach((center) => {

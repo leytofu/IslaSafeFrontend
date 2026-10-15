@@ -56,3 +56,5 @@
 .dashboard-map__open:hover {
   color: var(--indigo-200);
 }
+
+.dashboard-map__header { flex-wrap: wrap; }

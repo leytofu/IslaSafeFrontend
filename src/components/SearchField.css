@@ -3,7 +3,7 @@
 .search-field {
   position: relative;
   display: block;
-  min-width: 220px;
+  min-width: min(220px, 100%);
   flex: 1 1 0%;
 }
 

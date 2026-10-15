@@ -7,6 +7,7 @@
 
 .hazard-layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
 }
 
@@ -28,7 +29,8 @@
 
 .hazard-heading-actions {
   display: flex;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-width: 0;
   gap: 0.5rem;
 }
 
@@ -451,4 +453,10 @@
   margin-top: 0.125rem;
   flex-shrink: 0;
   color: var(--slate-400);
+}
+
+.hazard-map-only { height: 100dvh; }
+@media (max-width: 639px) {
+  .hazard-heading-actions { width: 100%; }
+  .hazard-heading-actions > button { flex: 1 1 7rem; justify-content: center; }
 }
