@@ -14,6 +14,7 @@ interface ApiOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   body?: unknown
   token?: string
+  timeoutMs?: number
 }
 
 async function readErrorMessage(response: Response): Promise<string> {
@@ -37,9 +38,9 @@ async function readErrorMessage(response: Response): Promise<string> {
  * and friendly error messages extracted from Laravel validation payloads.
  */
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { method = 'GET', body, token } = options
+  const { method = 'GET', body, token, timeoutMs = environment.api.timeoutMs } = options
   const controller = new AbortController()
-  const timer = window.setTimeout(() => controller.abort(), environment.api.timeoutMs)
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     // FormData bodies (file uploads) must not be JSON-stringified — the

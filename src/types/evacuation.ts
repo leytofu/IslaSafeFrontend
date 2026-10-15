@@ -1,0 +1,8 @@
+export type Place = { id: number; barangay: string; municipality: string }
+export type Event = { id: number; name: string; status: string }
+export type Registration = { id: number; evacuee_id: number; full_name: string; age: number | null; age_group: string; gender: string; place: Place; purok: string | null; status: string; registered_at: string }
+export type LiveCenter = { id: number; name: string; place: Place; capacity: number | null; contact: string | null; status: string; latitude: number | null; longitude: number | null; current: number; registered: number; first_time: number; returning: number; available: number | null; occupancy_percent: number | null; total_recorded_events: number; event: Event | null; latest_activity: { action: string; occurred_at: string } | null; demographics?: { age: Record<string, number>; gender: Record<string, number>; places: { place: Place; total: number }[]; puroks: { place: Place; purok: string | null; total: number }[] } }
+export type Setup = { places: Place[]; event: Event | null; events: Event[]; managers: { id: number; name: string }[]; assignments: { user_id: number; center_id: number; place_ids: number[]; user: { name: string }; center: { name: string } }[]; genders: string[] }
+export type Page<T> = { data: T[]; current_page: number; last_page: number; total: number }
+export type MapCenter = Pick<LiveCenter, 'id' | 'name' | 'place' | 'capacity' | 'status' | 'latitude' | 'longitude' | 'current' | 'available'>
+export type CenterInput = { name: string; place_id: number; capacity: number; latitude: number; longitude: number; status: string; contact: string | null; camp_manager_id: number | null }

@@ -164,16 +164,16 @@ function App() {
 
   const renderContent = () => {
     if (page === 'Dashboard') {
-      return <DashboardPage onOpenMap={() => { setActivePage('Hazard Map'); setIsMapOnlyView(true) }} onOpenSosRequest={openSosRequest} sosRequests={sosRequests} />
+      return <DashboardPage token={auth.token ?? ''} onOpenMap={() => { setActivePage('Hazard Map'); setIsMapOnlyView(true) }} onOpenSosRequest={openSosRequest} sosRequests={sosRequests} />
     }
 
     if (page === 'Hazard Map') {
-      return <HazardMapPage onMapOnlyChange={setIsMapOnlyView} />
+      return <HazardMapPage token={auth.token ?? ''} onMapOnlyChange={setIsMapOnlyView} />
     }
 
     const pages: Partial<Record<PageName, ReactElement>> = {
       'SOS Management': <SosManagementPage onClearSelectedRequest={() => setSelectedSosRequestId(null)} onIncomingSos={simulateIncomingSos} onUpdateStatus={updateStatus} requests={sosRequests} selectedRequestId={selectedSosRequestId} />,
-      'Evacuation Centers': <EvacuationCentersPage />,
+      'Evacuation Centers': <EvacuationCentersPage token={auth.token ?? ''} />,
       'Incident Monitoring': <IncidentMonitoringPage />,
       'MDRRMO Link / AWS': <WeatherStationPage />,
       Advisories: <AdvisoriesPage />,
@@ -190,7 +190,7 @@ function App() {
   if (isMapOnlyView) {
     return (
       <>
-        <HazardMapPage mapOnly onMapOnlyChange={setIsMapOnlyView} />
+        <HazardMapPage token={auth.token ?? ''} mapOnly onMapOnlyChange={setIsMapOnlyView} />
         {alertOverlay}
       </>
     )

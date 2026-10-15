@@ -1,6 +1,7 @@
 export type MapPosition = [number, number]
 
 export interface EvacuationCenter {
+  place_id?: number
   name: string
   barangay: string
   capacity: number

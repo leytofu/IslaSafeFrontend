@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes, type KeyboardEvent, type Ref } from 'react'
-import { Activity, AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Lock, Mail, ShieldCheck } from 'lucide-react'
-import { CinematicIntro } from '../components/CinematicIntro'
+import { AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Mail, MapPinned, Radio, ShieldCheck, Users } from 'lucide-react'
 import { ForgotPasswordForm } from '../components/ForgotPasswordForm'
 import { ResetPasswordForm } from '../components/ResetPasswordForm'
 import './AuthPage.css'
@@ -39,7 +38,7 @@ function AuthInput({ icon: Icon, label, invalid, describedBy, inputRef, ...input
   )
 }
 
-function LoginPasswordField({ capsLockOn, onChange, onCapsLockChange, onToggle, showPassword, value }: { capsLockOn: boolean; onChange: (value: string) => void; onCapsLockChange: (on: boolean) => void; onToggle: () => void; showPassword: boolean; value: string }) {
+function LoginPasswordField({ capsLockOn, disabled, error, inputRef, onChange, onCapsLockChange, onToggle, showPassword, value }: { capsLockOn: boolean; disabled: boolean; error: string | null; inputRef: Ref<HTMLInputElement>; onChange: (value: string) => void; onCapsLockChange: (on: boolean) => void; onToggle: () => void; showPassword: boolean; value: string }) {
   const detectCapsLock = (event: KeyboardEvent<HTMLInputElement>) => {
     onCapsLockChange(event.getModifierState('CapsLock'))
   }
@@ -50,8 +49,12 @@ function LoginPasswordField({ capsLockOn, onChange, onCapsLockChange, onToggle, 
       <span className="auth-input-wrap">
         <LockKeyhole className="auth-input-icon" />
         <input
+          aria-describedby={error ? 'auth-password-error' : undefined}
+          aria-invalid={Boolean(error) || undefined}
           autoComplete="current-password"
           className={`${authInputClassName} auth-input-field--trailing`}
+          disabled={disabled}
+          ref={inputRef}
           name="current-password"
           onChange={(event) => onChange(event.target.value)}
           onKeyUp={detectCapsLock}
@@ -62,10 +65,11 @@ function LoginPasswordField({ capsLockOn, onChange, onCapsLockChange, onToggle, 
           type={showPassword ? 'text' : 'password'}
           value={value}
         />
-        <button aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="auth-password-toggle" onClick={onToggle} type="button">
+        <button aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="auth-password-toggle" disabled={disabled} onClick={onToggle} type="button">
           {showPassword ? <EyeOff /> : <Eye />}
         </button>
       </span>
+      {error && <span className="auth-field-error" id="auth-password-error" role="alert">{error}</span>}
       {capsLockOn && (
         <span className="auth-caps" role="status">
           <AlertCircle /> Caps Lock is on
@@ -82,9 +86,11 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [capsLockOn, setCapsLockOn] = useState(false)
   const [showPasswordRecovery, setShowPasswordRecovery] = useState(false)
   const emailInputRef = useRef<HTMLInputElement>(null)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
 
   // Focus the email field as soon as the sign-in form is usable.
   useEffect(() => {
@@ -115,42 +121,51 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
       return
     }
 
+    if (!password) {
+      setPasswordError('Enter your password to continue.')
+      passwordInputRef.current?.focus()
+      return
+    }
+
     setSubmitting(true)
     setErrorMessage(null)
 
-    const error = await onSignIn(email.trim(), password)
-
-    if (error) {
-      setErrorMessage(error)
+    try {
+      const error = await onSignIn(email.trim(), password)
+      if (error) setErrorMessage(error)
+    } catch {
+      setErrorMessage('Unable to sign in right now. Please try again.')
+    } finally {
       setSubmitting(false)
     }
   }
 
   return (
     <main className="auth-page">
-      <CinematicIntro />
       <div className="auth-page__bg" />
-      <div aria-hidden="true" className="auth-orb auth-orb--one" />
-      <div aria-hidden="true" className="auth-orb auth-orb--two" />
 
       <section className="auth-hero">
         <div className="auth-hero__brand">
-          <span className="auth-brand-icon"><Activity strokeWidth={2.4} /></span>
+          <span className="auth-brand-icon"><img className="auth-brand-image" src="/app-logo.png" alt="Municipality of President Carlos P. Garcia seal" /></span>
           <div><p className="auth-hero__brand-name">IslaSafe</p><p className="auth-hero__brand-tag">MDRRMO OPERATIONS</p></div>
         </div>
         <div className="auth-hero__claim">
-          <span className="auth-hero__badge"><ShieldCheck /></span>
-          <h1 className="auth-hero__headline">Coordinated response, when every second matters.</h1>
-          <p className="auth-hero__copy">A unified workspace for CPG emergency operations, live hazard awareness, evacuation coordination, and resident support.</p>
-          <div className="auth-hero__stats">{[['23', 'Barangays'], ['15', 'Centers'], ['24/7', 'Monitoring']].map(([value, label]) => <div className="auth-stat" key={label}><p className="auth-stat__value">{value}</p><p className="auth-stat__label">{label}</p></div>)}</div>
+          <span className="auth-hero__eyebrow"><span /> MUNICIPAL EMERGENCY OPERATIONS</span>
+          <h1 className="auth-hero__headline">A connected team.<br /><span>A safer island.</span></h1>
+          <p className="auth-hero__copy">Bring awareness, coordination, and community support together. Your workspace for every stage of emergency response.</p>
+          <div className="auth-capabilities">
+            {[{ icon: Radio, title: 'Stay informed', detail: 'Hazard awareness and incident monitoring' }, { icon: MapPinned, title: 'Coordinate response', detail: 'Evacuation centers and emergency requests' }, { icon: Users, title: 'Support your community', detail: 'Resident information and public advisories' }].map(({ icon: Icon, title, detail }) => (
+              <div className="auth-capability" key={title}><span className="auth-capability__icon"><Icon aria-hidden="true" /></span><div><h2>{title}</h2><p>{detail}</p></div></div>
+            ))}
+          </div>
         </div>
         <p className="auth-hero__municipality">Municipality of President Carlos P. Garcia · Bohol</p>
       </section>
 
       <section className="auth-form-section">
         <div className="auth-form-wrap">
-          <div className="auth-form-brand"><span className="auth-brand-icon auth-brand-icon--compact"><Activity /></span><span><span className="auth-form-brand-name">IslaSafe</span><span className="auth-form-brand-tag">MDRRMO OPERATIONS</span></span></div>
-          <div className={`auth-panel auth-card${showPasswordRecovery || resetRequest ? '' : ' auth-card--fill'}`}>
+          <div className="auth-form-brand"><span className="auth-brand-icon auth-brand-icon--compact"><img className="auth-brand-image" src="/app-logo.png" alt="Municipality of President Carlos P. Garcia seal" /></span><span><span className="auth-form-brand-name">IslaSafe</span><span className="auth-form-brand-tag">MDRRMO OPERATIONS</span></span></div>
+          <div className="auth-panel auth-card">
             {resetRequest ? (
               <ResetPasswordForm
                 email={resetRequest.email}
@@ -165,15 +180,16 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
               />
             ) : showPasswordRecovery ? <ForgotPasswordForm initialEmail={email} onBackToSignIn={() => setShowPasswordRecovery(false)} /> : <>
               <div className="auth-card__header">
-                <div className="auth-secure"><span className="auth-secure__dot" /> Secure admin portal</div>
+                <div className="auth-secure"><ShieldCheck aria-hidden="true" /> ADMINISTRATOR ACCESS</div>
                 <h2 className="auth-card__title">Welcome back</h2>
                 <p className="auth-card__subtitle">Sign in to continue to the operations dashboard.</p>
               </div>
 
-              <form autoComplete="on" className="stack-4" noValidate onSubmit={handleSubmit}>
+              <form aria-busy={submitting} autoComplete="on" className="auth-login-form" noValidate onSubmit={handleSubmit}>
                 <AuthInput
                   autoComplete="username"
                   describedBy={emailError ? 'auth-email-error' : undefined}
+                  disabled={submitting}
                   icon={Mail}
                   invalid={Boolean(emailError)}
                   label="Email address"
@@ -192,10 +208,9 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
                   value={email}
                 />
                 {emailError && <p className="auth-field-error" id="auth-email-error" role="alert">{emailError}</p>}
-                <LoginPasswordField capsLockOn={capsLockOn} onChange={setPassword} onCapsLockChange={setCapsLockOn} onToggle={() => setShowPassword((current) => !current)} showPassword={showPassword} value={password} />
+                <LoginPasswordField capsLockOn={capsLockOn} disabled={submitting} error={passwordError} inputRef={passwordInputRef} onChange={(value) => { setPassword(value); setPasswordError(null) }} onCapsLockChange={setCapsLockOn} onToggle={() => setShowPassword((current) => !current)} showPassword={showPassword} value={password} />
                 <div className="auth-options">
-                  <label className="auth-remember"><input className="auth-checkbox" type="checkbox" /><span aria-hidden="true" className="auth-checkbox__mark" /> Remember me</label>
-                  <button className="auth-link" onClick={() => setShowPasswordRecovery(true)} type="button">Forgot password?</button>
+                  <button className="auth-link" disabled={submitting} onClick={() => setShowPasswordRecovery(true)} type="button">Forgot password?</button>
                 </div>
                 {errorMessage && <div aria-live="polite" className="auth-error" role="alert"><AlertCircle className="auth-error__icon" /><span>{errorMessage}</span></div>}
                 <button aria-busy={submitting} className="auth-submit" disabled={submitting} type="submit">
@@ -204,13 +219,7 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
                 </button>
               </form>
 
-              <div className="auth-trust" aria-hidden="true">
-                <span><Lock /> Encrypted session</span>
-                <span className="auth-trust__sep" />
-                <span><ShieldCheck /> Role-based access</span>
-              </div>
-
-              <p className="auth-signup-note">Administrator accounts are provisioned by the MDRRMO system administrator.</p>
+              <div className="auth-access-note"><span className="auth-access-note__icon"><LockKeyhole aria-hidden="true" /></span><div><p>Need access to IslaSafe?</p><span>Contact your MDRRMO system administrator to request an account.</span></div></div>
             </>}
           </div>
           <p className="auth-fineprint"><CheckCircle2 /> Authorized IslaSafe personnel only</p>

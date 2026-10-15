@@ -44,7 +44,7 @@ export function ResetPasswordForm({ token, email, onBackToSignIn, onRequestNewLi
     try {
       await apiFetch('/auth/reset-password', {
         method: 'POST',
-        body: { token, email, password: newPassword, password_confirmation: confirmPassword },
+        body: { reset_token: token, password: newPassword, password_confirmation: confirmPassword },
       })
       setDone(true)
     } catch (caught) {

@@ -1,5 +1,4 @@
 import {
-  Activity,
   AlertTriangle,
   BarChart3,
   BellRing,
@@ -146,7 +145,7 @@ export function Sidebar({ activePage, allowedPages, collapsed, isOpen, user, onC
             title="Dashboard"
             type="button"
           >
-            <Activity strokeWidth={2.4} />
+            <img className="sidebar__logo-image" src="/app-logo.png" alt="" />
           </button>
           <span className="sidebar__brand-text">
             <span className="sidebar__brand-name">IslaSafe</span>

@@ -128,6 +128,13 @@
   height: 1.25rem;
 }
 
+.sidebar__logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+
 .sidebar__brand-text {
   min-width: 0;
   max-width: 12rem;

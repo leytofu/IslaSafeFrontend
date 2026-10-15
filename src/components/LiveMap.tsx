@@ -6,6 +6,8 @@ import { environment } from '../config/environment'
 import { BasemapToggle, type BasemapKey } from './BasemapToggle'
 import { createCirclePolygon, createRasterStyle, setGeoJsonData, toLngLat, toLngLatBounds, updateRasterTiles, type MapCoordinate } from '../utils/maplibre'
 import { mapLayers, urbanHazards, type MapLayerKey, type UrbanHazard } from '../data/mapLayers'
+import { useCenterMap } from '../hooks/useCenterMap'
+import type { MapCenter } from '../types/evacuation'
 import './LiveMap.css'
 
 // President Carlos P. Garcia is centred on Lapinig Island, Bohol.
@@ -77,6 +79,8 @@ function MapLegend({ activeLayers, hazard, hazardColor }: { activeLayers: MapLay
 }
 
 interface LiveMapProps {
+  token: string
+  onCentersLoaded?: (centers: MapCenter[]) => void
   full?: boolean
   fullScreen?: boolean
   visibleLayers?: MapLayerKey[]
@@ -86,7 +90,9 @@ interface LiveMapProps {
   onMinimize?: () => void
 }
 
-export function LiveMap({ full = false, fullScreen = false, visibleLayers = [], barangay = 'All barangays', urbanHazard = 'Flooding', onFeatureSelect, onMinimize }: LiveMapProps) {
+export function LiveMap({ token, onCentersLoaded, full = false, fullScreen = false, visibleLayers = ['evacuation'], barangay = 'All barangays', urbanHazard = 'Flooding', onFeatureSelect, onMinimize }: LiveMapProps) {
+  const { centers, error: centerError, loading: centersLoading } = useCenterMap(token)
+  const centerMarkersRef = useRef(new Map<number, maplibregl.Marker>())
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const labelMarkersRef = useRef<maplibregl.Marker[]>([])
@@ -99,9 +105,12 @@ export function LiveMap({ full = false, fullScreen = false, visibleLayers = [], 
   const mapContainerClass = fullScreen ? 'live-map--screen' : full ? 'live-map--full' : 'live-map--compact'
   const mapMaximumZoom = full ? fullMapMaximumZoom : environment.map.maxZoom
 
+  useEffect(() => { if (!centersLoading && !centerError) onCentersLoaded?.(centers) }, [centers, centersLoading, centerError, onCentersLoaded])
+
   useEffect(() => { featureSelectRef.current = onFeatureSelect }, [onFeatureSelect])
 
   useEffect(() => {
+    const centerMarkers = centerMarkersRef.current
     const container = containerRef.current
     if (!container) return
     const map = new maplibregl.Map({ attributionControl: { compact: true }, center: toLngLat(pitogo), container, maxBounds: toLngLatBounds(cpgNavigationBounds), maxZoom: mapMaximumZoom, minZoom: minimumMapZoom, scrollZoom: true, style: createRasterStyle(basemaps.map.url, basemaps.map.attribution, environment.map.maxZoom), zoom: cpgOverviewZoom })
@@ -135,6 +144,8 @@ export function LiveMap({ full = false, fullScreen = false, visibleLayers = [], 
       labelMarkersRef.current.forEach((marker) => marker.remove())
       labelMarkersRef.current = []
       tooltip.remove()
+      centerMarkers.forEach((marker) => marker.remove())
+      centerMarkers.clear()
       map.remove()
       mapRef.current = null
     }
@@ -164,11 +175,6 @@ export function LiveMap({ full = false, fullScreen = false, visibleLayers = [], 
     ] : []
     const routeFeatures = visibleLayers.includes('routes') ? [{ geometry: { coordinates: [[124.5569, 10.1222], [124.55, 10.125], [124.5419, 10.1278]], type: 'LineString' as const }, properties: { label: 'Safe response route · Pitogo to Lapinig', tooltip: 'Safe response route' }, type: 'Feature' as const }] : []
     const operationalFeatures = [
-      ...(visibleLayers.includes('evacuation') ? [
-        { geometry: { coordinates: [124.5569, 10.1222], type: 'Point' as const }, properties: { color: '#22c55e', label: 'Pitogo Central School · Operational', radius: 8, strokeColor: '#dbeafe', tooltip: 'Pitogo Central School · operational' }, type: 'Feature' as const },
-        { geometry: { coordinates: [124.572, 10.116], type: 'Point' as const }, properties: { color: '#22c55e', label: 'San Vicente Elementary · Operational', radius: 8, strokeColor: '#dbeafe', tooltip: 'San Vicente Elementary · operational' }, type: 'Feature' as const },
-        { geometry: { coordinates: [124.58, 10.103], type: 'Point' as const }, properties: { color: '#f59e0b', label: 'Baud Barangay Hall · Near capacity', radius: 8, strokeColor: '#fef3c7', tooltip: 'Baud Barangay Hall · near capacity' }, type: 'Feature' as const },
-      ] : []),
       ...(visibleLayers.includes('sos') ? [
         { geometry: { coordinates: [124.561, 10.118], type: 'Point' as const }, properties: { color: '#f43f5e', label: 'Active SOS · Purok 2, Pitogo', radius: 8, strokeColor: '#fff1f2', tooltip: 'Active SOS · Purok 2, Pitogo' }, type: 'Feature' as const },
         { geometry: { coordinates: [124.545, 10.126], type: 'Point' as const }, properties: { color: '#f43f5e', label: 'Active SOS · Lapinig coast', radius: 8, strokeColor: '#fff1f2', tooltip: 'Active SOS · Lapinig coast' }, type: 'Feature' as const },
@@ -187,13 +193,48 @@ export function LiveMap({ full = false, fullScreen = false, visibleLayers = [], 
     labelMarkersRef.current = full && visibleLayers.includes('barangays') ? barangayLabels.map(({ name, position }) => createMapLabel(map, position, name)) : []
   }, [full, isReady, visibleLayers])
 
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !isReady) return
+    const visible = visibleLayers.includes('evacuation') ? centers.filter((center) => center.latitude != null && center.longitude != null && (barangay === 'All barangays' || center.place.barangay === barangay)) : []
+    const ids = new Set(visible.map((center) => center.id))
+    centerMarkersRef.current.forEach((marker, id) => { if (!ids.has(id)) { marker.remove(); centerMarkersRef.current.delete(id) } })
+    visible.forEach((center) => {
+      let marker = centerMarkersRef.current.get(center.id)
+      if (!marker) {
+        const element = document.createElement('button')
+        element.type = 'button'
+        element.className = 'evac-map-marker'
+        element.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3 10 9-7 9 7v11H3Z"/><path d="M9 21v-8h6v8M9 8h6"/></svg>'
+        marker = new maplibregl.Marker({ element, anchor: 'bottom' }).setLngLat([center.longitude!, center.latitude!])
+          .setPopup(new maplibregl.Popup({ offset: 38, maxWidth: '280px', className: 'evac-map-popup' })).addTo(map)
+        // Custom marker elements own their keyboard interactions in MapLibre 6.
+        element.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); marker?.togglePopup() }
+        })
+        centerMarkersRef.current.set(center.id, marker)
+      }
+      marker.setLngLat([center.longitude!, center.latitude!])
+      const element = marker.getElement()
+      element.setAttribute('aria-label', `${center.name}, ${center.place.barangay}. View evacuation center details`)
+      element.title = center.name
+      element.dataset.status = center.status !== 'Operational' ? 'inactive' : center.available === 0 ? 'full' : 'open'
+      const content = document.createElement('div')
+      const title = document.createElement('h3'); title.textContent = center.name; content.append(title)
+      for (const text of [center.place.barangay, `Maximum capacity: ${center.capacity ?? 'Not configured'}`, `Current occupancy: ${center.current}`, center.available === 0 ? 'Full - no available spaces' : `${center.available ?? 'Unknown'} available spaces`, center.status === 'Closed' ? 'Deactivated' : center.status]) {
+        const line = document.createElement('p'); line.textContent = text; content.append(line)
+      }
+      marker.getPopup()?.setDOMContent(content)
+    })
+  }, [centers, isReady, visibleLayers, barangay])
+
   return <div className={`live-map ${mapContainerClass}`}>
     <div aria-label="Interactive CPG hazard map" className="islasafe-map live-map__canvas" ref={containerRef} role="application" />
     <BasemapToggle onChange={setBasemap} value={basemap} />
     {!full && visibleLayers.length > 0 && <div className="live-map__layers live-map__overlay"><p className="live-map__overlay-title">Map layers</p><div className="live-map__layers-list stack-1">{mapLayers.filter((layer) => active(layer.key)).map((layer) => <p className="live-map__layers-item" key={layer.key}><span className="live-map__layer-dot" style={{ backgroundColor: layer.color }} /> {layer.label}</p>)}</div></div>}
     {full && <MapLegend activeLayers={visibleLayers} hazard={urbanHazard} hazardColor={exposure.color} />}
     {fullScreen && onMinimize && <button className="live-map__minimize" onClick={onMinimize} type="button"><Minimize2 /> Minimize</button>}
-    <div className="live-map__live"><span className="live-map__live-dot" />LIVE DATA</div>
+    <div className="live-map__live" role="status"><span className="live-map__live-dot" />{centerError ? 'CENTER UPDATES UNAVAILABLE' : centersLoading ? 'LOADING CENTERS' : `${centers.length} RECORDED CENTERS`}</div>
     <div className="live-map__context">{full ? <MapPinned /> : <Crosshair />}{full ? 'CPG island · 23 barangays monitored' : 'CPG island overview'}</div>
   </div>
 }

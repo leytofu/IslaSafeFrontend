@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent, type ClipboardEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ClipboardEvent } from 'react'
 import { ArrowLeft, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, RefreshCw, ShieldCheck } from 'lucide-react'
-import { apiFetch } from '../utils/api'
+import { ApiError, apiFetch } from '../utils/api'
+import { completeOtp, otpDigits, replaceOtpDigit } from '../utils/otp'
 import './ForgotPasswordForm.css'
 
 /**
@@ -15,28 +16,27 @@ export function PasswordField({ confirm, label, onChange, value }: { confirm?: b
 /**
  * Six-digit OTP input with paste and keyboard support.
  */
-function OtpInput({ onComplete, value, onChange }: { onComplete: (code: string) => void; value: string; onChange: (code: string) => void }) {
-  const [digits, setDigits] = useState<string[]>(() => Array.from({ length: 6 }, (_, i) => value[i] ?? ''))
+function OtpInput({ disabled, onComplete, value, onChange }: { disabled: boolean; onComplete: (code: string) => void; value: string; onChange: (code: string) => void }) {
+  const digits = otpDigits(value)
+  const inputs = useRef<(HTMLInputElement | null)[]>([])
+  useEffect(() => {
+    if (!value && !disabled) inputs.current[0]?.focus()
+  }, [value, disabled])
 
   const updateDigit = (index: number, digit: string) => {
-    const next = [...digits]
-    next[index] = digit
-    setDigits(next)
-    const code = next.join('')
+    const code = replaceOtpDigit(value, index, digit)
     onChange(code)
     if (digit && index < 5) {
-      const nextInput = document.querySelector<HTMLInputElement>(`#otp-digit-${index + 1}`)
-      nextInput?.focus()
+      inputs.current[index + 1]?.focus()
     }
-    if (digit && index === 5 && code.length === 6) {
+    if (completeOtp(code)) {
       onComplete(code)
     }
   }
 
   const handleKeyDown = (index: number) => (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Backspace' && !digits[index] && index > 0) {
-      const prevInput = document.querySelector<HTMLInputElement>(`#otp-digit-${index - 1}`)
-      prevInput?.focus()
+      inputs.current[index - 1]?.focus()
     }
   }
 
@@ -44,8 +44,8 @@ function OtpInput({ onComplete, value, onChange }: { onComplete: (code: string) 
     event.preventDefault()
     const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
     if (pasted) {
-      setDigits(Array.from({ length: 6 }, (_, i) => pasted[i] ?? ''))
       onChange(pasted)
+      inputs.current[Math.min(pasted.length, 5)]?.focus()
       if (pasted.length === 6) onComplete(pasted)
     }
   }
@@ -56,16 +56,20 @@ function OtpInput({ onComplete, value, onChange }: { onComplete: (code: string) 
         <input
           key={index}
           id={`otp-digit-${index}`}
+          ref={(element) => { inputs.current[index] = element }}
+          disabled={disabled}
+          autoComplete={index === 0 ? 'one-time-code' : 'off'}
           className="fp-otp-digit"
           inputMode="numeric"
-          maxLength={1}
+          maxLength={index === 0 ? 6 : 1}
           value={digit}
           onChange={(e) => {
             const val = e.target.value.replace(/\D/g, '')
+            if (completeOtp(val)) { onChange(val); onComplete(val); return }
             updateDigit(index, val.slice(-1))
           }}
           onKeyDown={handleKeyDown(index)}
-          onPaste={index === 0 ? handlePaste : undefined}
+          onPaste={handlePaste}
           aria-label={`Digit ${index + 1}`}
           autoFocus={index === 0}
         />
@@ -120,61 +124,72 @@ export function ForgotPasswordForm({ initialEmail, onBackToSignIn }: ForgotPassw
   const [submitting, setSubmitting] = useState(false)
   const [otpExpiresIn, setOtpExpiresIn] = useState(300)
   const [resendAvailableIn, setResendAvailableIn] = useState(0)
+  const inFlight = useRef(false)
+  const otpDeadline = useRef(0)
+  const resendDeadline = useRef(0)
 
   const otpMinutes = Math.ceil(otpExpiresIn / 60)
 
-  // Ticks once per second while OTP is active
+  // Deadlines remain correct after a browser tab has been backgrounded.
   useEffect(() => {
-    if (step === 'email' || step === 'success') return
-    const id = window.setInterval(() => {
-      setOtpExpiresIn((current) => Math.max(0, current - 1))
-    }, 1000)
-    return () => window.clearInterval(id)
+    if (step !== 'otp') return
+    const tick = () => {
+      setOtpExpiresIn(Math.max(0, Math.ceil((otpDeadline.current - Date.now()) / 1000)))
+      setResendAvailableIn(Math.max(0, Math.ceil((resendDeadline.current - Date.now()) / 1000)))
+    }
+    const id = window.setInterval(tick, 1000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', tick) }
   }, [step])
 
   // Countdown for resend cooldown
   useEffect(() => {
-    if (resendAvailableIn <= 0) return
-    const timer = window.setInterval(() => {
-      setResendAvailableIn((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer)
-          return 0
-        }
-        return current - 1
-      })
-    }, 1000)
-    return () => window.clearInterval(timer)
-  }, [resendAvailableIn])
+    if (!successMessage || step === 'success') return
+    const timer = window.setTimeout(() => setSuccessMessage(''), 3000)
+    return () => window.clearTimeout(timer)
+  }, [successMessage, step])
+
+  const restartRecovery = () => {
+    setStep('email'); setChallengeId(''); setResetToken(''); setOtp('')
+    setNewPassword(''); setConfirmPassword(''); setSuccessMessage('')
+  }
 
   const requestOtp = async () => {
-    if (submitting) return
+    if (inFlight.current) return
     const normalized = email.trim()
     if (!normalized) {
       setError('Please enter your email address.')
       return
     }
     setError('')
+    inFlight.current = true
     setSubmitting(true)
     try {
       const response = await apiFetch<RequestOtpResponse>('/forgot-password', {
         method: 'POST',
         body: { email: normalized },
+        timeoutMs: 45_000,
       })
       setChallengeId(response.data.challenge_id)
       setOtpExpiresIn(response.data.expires_in)
       setResendAvailableIn(response.data.resend_available_in)
+      otpDeadline.current = Date.now() + response.data.expires_in * 1000
+      resendDeadline.current = Date.now() + response.data.resend_available_in * 1000
+      setEmail(normalized)
+      setOtp('')
       setStep('otp')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Something went wrong while sending the verification code. Please try again.')
     } finally {
+      inFlight.current = false
       setSubmitting(false)
     }
   }
 
   const verifyOtp = async (code: string) => {
-    if (submitting) return
+    if (inFlight.current || !completeOtp(code)) return
     setError('')
+    inFlight.current = true
     setSubmitting(true)
     try {
       const response = await apiFetch<VerifyOtpResponse>('/forgot-password/verify-otp', {
@@ -186,42 +201,48 @@ export function ForgotPasswordForm({ initialEmail, onBackToSignIn }: ForgotPassw
     } catch (caught) {
       if (caught instanceof Error && caught.message.includes('expired')) {
         setError('This verification request has expired. Please request a new code.')
-        setStep('email')
+        restartRecovery()
       } else if (caught instanceof Error && caught.message.includes('Too many attempts')) {
         setError('Too many attempts. Please request a new code.')
-        setStep('email')
+        restartRecovery()
       } else {
         setError(caught instanceof Error ? caught.message : 'The verification code is invalid. Please try again.')
         setOtp('')
       }
     } finally {
+      inFlight.current = false
       setSubmitting(false)
     }
   }
 
   const resendOtp = async () => {
-    if (submitting) return
+    if (inFlight.current || resendAvailableIn > 0) return
     setError('')
+    inFlight.current = true
     setSubmitting(true)
     try {
       const response = await apiFetch<ResendOtpResponse>('/forgot-password/resend-otp', {
         method: 'POST',
         body: { challenge_id: challengeId },
+        timeoutMs: 45_000,
       })
       setOtpExpiresIn(response.data.expires_in)
       setResendAvailableIn(response.data.resend_available_in)
+      otpDeadline.current = Date.now() + response.data.expires_in * 1000
+      resendDeadline.current = Date.now() + response.data.resend_available_in * 1000
       setOtp('')
       setSuccessMessage('A new verification code has been sent.')
-      setTimeout(() => setSuccessMessage(''), 3000)
     } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 410) restartRecovery()
       setError(caught instanceof Error ? caught.message : 'Failed to resend the verification code. Please try again.')
     } finally {
+      inFlight.current = false
       setSubmitting(false)
     }
   }
 
   const resetPassword = async () => {
-    if (submitting) return
+    if (inFlight.current) return
     setError('')
 
     if (newPassword.length < 8) {
@@ -233,6 +254,7 @@ export function ForgotPasswordForm({ initialEmail, onBackToSignIn }: ForgotPassw
       return
     }
 
+    inFlight.current = true
     setSubmitting(true)
     try {
       await apiFetch('/forgot-password/reset', {
@@ -248,13 +270,12 @@ export function ForgotPasswordForm({ initialEmail, onBackToSignIn }: ForgotPassw
     } catch (caught) {
       if (caught instanceof Error && caught.message.includes('invalid or has expired')) {
         setError('This password reset request is invalid or has expired. Please restart the password recovery process.')
-        setStep('email')
-        setChallengeId('')
-        setResetToken('')
+        restartRecovery()
       } else {
         setError(caught instanceof Error ? caught.message : 'Something went wrong while resetting your password. Please try again.')
       }
     } finally {
+      inFlight.current = false
       setSubmitting(false)
     }
   }
@@ -268,7 +289,7 @@ export function ForgotPasswordForm({ initialEmail, onBackToSignIn }: ForgotPassw
   const handleOtpSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (submitting) return
-    if (otp.length !== 6) {
+    if (!completeOtp(otp)) {
       setError('Please enter the complete 6-digit verification code.')
       return
     }
@@ -305,13 +326,13 @@ export function ForgotPasswordForm({ initialEmail, onBackToSignIn }: ForgotPassw
           <ShieldCheck className="fp-otp-info__icon" />
           <p>We sent a 6-digit verification code to <span className="fp-mono">{email}</span>. Enter it below to verify your identity.</p>
         </div>
-        <OtpInput onComplete={(code) => void verifyOtp(code)} onChange={setOtp} value={otp} />
+        <OtpInput disabled={submitting} onComplete={(code) => void verifyOtp(code)} onChange={setOtp} value={otp} />
         <div className="fp-otp-actions">
-          <button className="fp-resend" disabled={submitting || resendAvailableIn > 0} onClick={() => void resendOtp()} type="button"><RefreshCw /> Resend code</button>
+          <button className="fp-resend" disabled={submitting || (otpExpiresIn > 0 && resendAvailableIn > 0)} onClick={() => { if (otpExpiresIn === 0) restartRecovery(); else void resendOtp() }} type="button"><RefreshCw /> {otpExpiresIn === 0 ? 'Request a new code' : 'Resend code'}</button>
           <span className="fp-resends">{resendAvailableIn > 0 ? `Available in ${resendAvailableIn}s` : 'Ready to resend'}</span>
         </div>
-        <p className="fp-hint">Code expires in {otpMinutes} minute{otpMinutes !== 1 ? 's' : ''}.</p>
-        <button className="action-button-primary action-button-primary--tall action-button-primary--block action-button-primary--text-sm" disabled={submitting || otp.length !== 6} type="submit">{submitting ? 'Verifying…' : 'Verify code'}{!submitting && <ShieldCheck className="action-button__icon action-button__icon--lg" />}</button>
+        <p className="fp-hint">{otpExpiresIn === 0 ? 'This code has expired. Request a new code to continue.' : `Code expires in ${otpMinutes} minute${otpMinutes !== 1 ? 's' : ''}.`}</p>
+        <button className="action-button-primary action-button-primary--tall action-button-primary--block action-button-primary--text-sm" disabled={submitting || !completeOtp(otp) || otpExpiresIn === 0} type="submit">{submitting ? 'Verifying…' : 'Verify code'}{!submitting && <ShieldCheck className="action-button__icon action-button__icon--lg" />}</button>
       </form>}
 
       {step === 'password' && <form className="stack-4" onSubmit={handlePasswordSubmit}>
