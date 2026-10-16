@@ -8,7 +8,7 @@ type AgeRoster = { key: string; title: string; range: string; total: number; gen
 type GroupedResponse = { data: AgeRoster[]; total: number; event: { name: string } | null; places: { id: number; barangay: string }[] }
 const label = (value: string) => value.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase())
 
-export function GroupedEvacuees({ id, token, revision, places, onChange }: { id: number; token: string; revision: number; places: { id: number; barangay: string }[]; onChange: () => Promise<void> }) {
+export function GroupedEvacuees({ id, sessionKey, revision, places, onChange }: { id: number; sessionKey: string; revision: number; places: { id: number; barangay: string }[]; onChange: () => Promise<void> }) {
   const [result, setResult] = useState<GroupedResponse | null>(null)
   const [query, setQuery] = useState(''); const [place, setPlace] = useState(''); const [status, setStatus] = useState('')
   const [pages, setPages] = useState<Record<string, number>>({})
@@ -17,8 +17,8 @@ export function GroupedEvacuees({ id, token, revision, places, onChange }: { id:
   const load = useCallback(() => {
     const params = new URLSearchParams({ q: query, place_id: place, status })
     Object.entries(pages).forEach(([key, value]) => params.set(key, String(value)))
-    return apiFetch<GroupedResponse>(`/admin/evacuation/centers/${id}/grouped-registrations?${params}`, { token })
-  }, [id, token, query, place, status, pages])
+    return apiFetch<GroupedResponse>(`/admin/evacuation/centers/${id}/grouped-registrations?${params}`, { sessionKey })
+  }, [id, sessionKey, query, place, status, pages])
   useEffect(() => {
     let active = true
     const timer = setTimeout(() => { setLoading(true); void load().then((response) => { if (active) { setResult(response); setError('') } }).catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : 'Unable to load registered evacuees.') }).finally(() => { if (active) setLoading(false) }) }, 250)
@@ -28,7 +28,7 @@ export function GroupedEvacuees({ id, token, revision, places, onChange }: { id:
     if (lock.current) return
     lock.current = true; setBusy(true); setError('')
     try {
-      await apiFetch(`/admin/evacuation/registrations/${row.id}`, { token, method: 'PATCH', body: { action, ...(action === 'transfer' ? { center_id: Number(target) } : {}) } })
+      await apiFetch(`/admin/evacuation/registrations/${row.id}`, { sessionKey, method: 'PATCH', body: { action, ...(action === 'transfer' ? { center_id: Number(target) } : {}) } })
       setResult(await load()); await onChange()
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to update registration.') }
     finally { lock.current = false; setBusy(false) }
@@ -40,7 +40,7 @@ export function GroupedEvacuees({ id, token, revision, places, onChange }: { id:
       <select aria-label="Filter roster by barangay" className="evac-filter" value={place} disabled={busy} onChange={(event) => { setPlace(event.target.value); setPages({}) }}><option value="">All barangays</option>{(result?.places ?? places).map((item) => <option key={item.id} value={item.id}>{item.barangay}</option>)}</select>
       <select aria-label="Filter registration status" className="evac-filter" value={status} disabled={busy} onChange={(event) => { setStatus(event.target.value); setPages({}) }}><option value="">All registrations</option><option value="checked_in">Checked in</option><option value="checked_out">Checked out</option></select>
     </div>
-    <details className="evac-transfer"><summary>Transfer an evacuee to another center</summary><EvacuationCenterLookup token={token} label="Transfer destination" value={target} onChange={setTarget} exclude={id} operational /></details>
+    <details className="evac-transfer"><summary>Transfer an evacuee to another center</summary><EvacuationCenterLookup sessionKey={sessionKey} label="Transfer destination" value={target} onChange={setTarget} exclude={id} operational /></details>
     {error && <p role="alert" className="fp-error">{error}</p>}
     {loading && <p role="status">Loading registered evacuees...</p>}
     {!loading && result?.total === 0 && <p className="evac-empty">No registered evacuees match these filters.</p>}

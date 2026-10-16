@@ -4,12 +4,12 @@ import { apiFetch } from '../utils/api'
 import type { LiveCenter } from '../types/evacuation'
 import { GroupedEvacuees } from './GroupedEvacuees'
 const label = (value: string) => value.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase())
-export function EvacuationCenterDetail({ id, token, revision, onClose, onChange }: { id: number; token: string; revision: number; onClose: () => void; onChange: () => Promise<void> }) {
+export function EvacuationCenterDetail({ id, sessionKey, revision, onClose, onChange }: { id: number; sessionKey: string; revision: number; onClose: () => void; onChange: () => Promise<void> }) {
   const [center, setCenter] = useState<LiveCenter | null>(null)
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false)
   const lock = useRef(false)
   const dialog = useRef<HTMLDialogElement>(null)
-  const load = useCallback(() => apiFetch<{ data: LiveCenter }>(`/admin/evacuation/centers/${id}`, { token }), [id, token])
+  const load = useCallback(() => apiFetch<{ data: LiveCenter }>(`/admin/evacuation/centers/${id}`, { sessionKey }), [id, sessionKey])
   useEffect(() => { dialog.current?.showModal() }, [])
   useEffect(() => { let active = true; void load().then(({ data }) => { if (active) { setCenter(data); setError('') } }).catch((caught) => { if (active) setError(caught instanceof Error ? caught.message : 'Unable to load center.') }); return () => { active = false } }, [load, revision])
   const changed = async () => { setCenter((await load()).data); setError(''); await onChange() }
@@ -19,7 +19,7 @@ export function EvacuationCenterDetail({ id, token, revision, onClose, onChange 
     const values = new FormData(form)
     setBusy(true); setError('')
     try {
-      await apiFetch(`/admin/evacuation/centers/${id}`, { token, method: 'PATCH', body: { capacity: values.get('capacity') === '' ? null : Number(values.get('capacity')), status: values.get('status'), contact: values.get('contact') || null } })
+      await apiFetch(`/admin/evacuation/centers/${id}`, { sessionKey, method: 'PATCH', body: { capacity: values.get('capacity') === '' ? null : Number(values.get('capacity')), status: values.get('status'), contact: values.get('contact') || null } })
       await changed()
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to update center.') }
     finally { lock.current = false; setBusy(false) }
@@ -29,7 +29,7 @@ export function EvacuationCenterDetail({ id, token, revision, onClose, onChange 
     {error && <p role="alert" className="fp-error">{error} <button className="auth-link" type="button" onClick={() => void changed().catch((caught) => setError(caught.message))}>Retry</button></p>}
     {center && <>
       <div className="evac-detail-metrics"><span>Registered: <strong>{center.registered}</strong></span><span>Checked in: <strong>{center.current}</strong></span><span>Available spaces: <strong>{center.available ?? 'Unknown'}</strong></span><span>First-time: <strong>{center.first_time}</strong></span><span>Returning: <strong>{center.returning}</strong></span></div>
-      <GroupedEvacuees id={id} token={token} revision={revision} places={center.demographics?.places.map((item) => item.place) ?? []} onChange={changed} />
+      <GroupedEvacuees id={id} sessionKey={sessionKey} revision={revision} places={center.demographics?.places.map((item) => item.place) ?? []} onChange={changed} />
       <details className="evac-center-settings"><summary>Center settings & occupancy demographics</summary>
         <form className="evac-toolbar" onSubmit={(event) => { event.preventDefault(); void updateCenter(event.currentTarget) }}><label className="field">Maximum capacity<input className="evac-filter" name="capacity" required type="number" min="1" max="100000" placeholder="Not configured" defaultValue={center.capacity ?? ''} /></label><label className="field">Operational status<select className="evac-filter" name="status" defaultValue={center.status}>{['Operational', 'Closed', 'Unavailable'].map((status) => <option key={status}>{status}</option>)}</select></label><label className="field">Contact<input name="contact" className="evac-filter" maxLength={120} defaultValue={center.contact ?? ''} /></label><button className="action-button" disabled={busy} type="submit">Save center settings</button></form>
         <p className="evac-live-event">Demographics count current occupants only. Recorded events: {center.total_recorded_events}.</p>

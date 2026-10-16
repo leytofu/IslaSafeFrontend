@@ -1,0 +1,120 @@
+import assert from 'node:assert/strict'
+import { mkdir } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
+import { assertReadable } from './helpers/contrast.mjs'
+
+const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)
+const browser = await chromium.launch({ executablePath: process.env.BROWSER_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true, args: ['--enable-unsafe-swiftshader'] })
+const origin = process.env.FRONTEND_URL || 'http://localhost:5173'
+const user = { id: 900001, name: 'Theme Review Admin', email: 'theme@example.test', role: 'admin', avatar_url: null }
+const errors = []
+let authenticated = true
+async function routes(context) {
+  context.on('page', (page) => page.on('pageerror', (error) => errors.push(error.message)))
+  await context.route('**/api/**', async (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/auth/web/logout')) { authenticated = false; return route.fulfill({ json: { message: 'Signed out.' } }) }
+    if (path.endsWith('/auth/me')) return route.fulfill({ status: authenticated ? 200 : 401, json: authenticated ? { user } : { message: 'Unauthenticated.' } })
+    if (path.endsWith('/admin/advisories')) return route.fulfill({ json: { data: [{ id: 1, title: 'Theme advisory', message: 'Advisory contrast sample.', priority: 'Critical', target: 'All barangays', status: 'Active', published_at: new Date().toISOString() }] } })
+    if (path.endsWith('/admin/notifications')) return route.fulfill({ json: { data: [], unread_count: 0 } })
+    if (path.endsWith('/incidents/statistics')) {
+      const period = new URL(route.request().url()).searchParams.get('period') || 'week'
+      return route.fulfill({ json: { data: { period, total: 0, active: 0, active_all: 0, resolved: 0, from: null, to: new Date().toISOString(), timezone: 'Asia/Manila', breakdown: ['Typhoon','Storm surge','Intense rains','Landslide','Strong winds','Others'].map((type) => ({ type, count: 0 })) } } })
+    }
+    return route.fulfill({ json: { data: [], users: [] } })
+  })
+}
+const theme = (page, expected) => page.waitForFunction((value) => document.documentElement.dataset.theme === value, expected)
+try {
+  await mkdir('../.verification/themes', { recursive: true })
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: 'dark', reducedMotion: 'reduce' })
+  await routes(context)
+  await context.addCookies([{ name: 'XSRF-TOKEN', value: 'theme-fixture', url: origin }])
+  const page = await context.newPage()
+  await page.goto(origin)
+  await theme(page, 'dark')
+  await page.addStyleTag({ content: '*, *::before, *::after { transition:none !important; animation:none !important }' })
+  const dashboardText = ['.topbar__subtitle', '.sidebar__brand-tag', '.nav-group__title', '.sidebar__user-avatar', '.nav-item__badge', '.app-footer', '.status-card__change', '.incident-breakdown__period', '.advisory-card__meta']
+  await assertReadable(page, dashboardText)
+  await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click()
+  await theme(page, 'light')
+  assert.equal(await page.evaluate(() => localStorage.getItem('islasafe.theme')), 'light')
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.status-card')).backgroundColor === 'rgb(255, 255, 255)')
+  assert.equal(await page.locator('.status-card').first().evaluate((node) => getComputedStyle(node).backgroundColor), 'rgb(255, 255, 255)')
+  assert.equal(await page.locator('.topbar__title').evaluate((node) => getComputedStyle(node).color), 'rgb(21, 34, 56)')
+  await assertReadable(page, dashboardText)
+  await page.getByRole('button', { name: 'Residents', exact: true }).click()
+  await assertReadable(page, ['.portal-table th', '.portal-table .cell-primary', '.portal-table .cell-mono', '.status-pill'])
+  await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
+  await page.screenshot({ path: '../.verification/themes/dashboard-light.png', fullPage: true })
+  await page.reload()
+  await theme(page, 'light')
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await page.getByRole('button', { name: 'Account & security', exact: true }).click()
+  await page.getByRole('radio', { name: /^Dark/ }).locator('..').click()
+  await theme(page, 'dark')
+  await page.getByRole('radio', { name: /^System/ }).press('Space')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await theme(page, 'light')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await theme(page, 'dark')
+  await page.getByRole('radio', { name: /^Light/ }).locator('..').click()
+  await theme(page, 'light')
+  await page.screenshot({ path: '../.verification/themes/appearance-light.png', fullPage: true })
+  const other = await context.newPage()
+  await other.goto(origin)
+  await other.getByRole('button', { name: 'Switch to dark theme', exact: true }).click()
+  await theme(page, 'dark')
+  await other.close()
+  await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
+  await page.addStyleTag({ content: '*, *::before, *::after { transition:none !important; animation:none !important }' })
+  await assertReadable(page, dashboardText)
+  await page.screenshot({ path: '../.verification/themes/dashboard-dark.png', fullPage: true })
+  await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click()
+  await page.getByRole('button', { name: /^Incident Monitoring/ }).click()
+  await page.getByRole('button', { name: 'Log incident', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.waitFor()
+  assert.equal(await dialog.evaluate((node) => getComputedStyle(node).backgroundColor), 'rgb(255, 255, 255)')
+  await dialog.getByLabel('Location', { exact: true }).fill('Contrast preview')
+  await assertReadable(page, ['.incident-dialog .field__label', '.incident-dialog input', '.incident-dialog .action-button-primary'])
+  await dialog.getByRole('button', { name: 'Save incident', exact: true }).hover()
+  await assertReadable(page, ['.incident-dialog .action-button-primary'])
+  await page.screenshot({ path: '../.verification/themes/incident-dialog-light.png', fullPage: true })
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.getByRole('button', { name: 'Switch to dark theme', exact: true }).click()
+  await theme(page, 'dark')
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+  await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click()
+  await page.screenshot({ path: '../.verification/themes/dashboard-mobile-light.png', fullPage: true })
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+  await page.getByRole('heading', { name: 'Welcome back', exact: true }).waitFor()
+  await page.getByLabel('Email address', { exact: true }).fill('theme-preview@example.test')
+  await page.locator('input[name="current-password"]').fill('ColorPreviewOnly')
+  await assertReadable(page, ['.auth-input', '.auth-submit', '.auth-footer', '.auth-card__subtitle'])
+  await page.getByRole('button', { name: 'Sign in to dashboard', exact: true }).hover()
+  await assertReadable(page, ['.auth-submit'])
+  await page.screenshot({ path: '../.verification/themes/auth-light.png', fullPage: true })
+  await page.getByRole('button', { name: 'Switch to dark theme', exact: true }).click()
+  await theme(page, 'dark')
+  await assertReadable(page, ['.auth-input', '.auth-submit', '.auth-footer', '.auth-card__subtitle'])
+  await page.screenshot({ path: '../.verification/themes/auth-dark.png', fullPage: true })
+  await context.close()
+  const blocked = await browser.newContext({ colorScheme: 'light' })
+  await routes(blocked)
+  await blocked.addInitScript(() => {
+    Storage.prototype.getItem = () => { throw new Error('Storage blocked') }
+    Storage.prototype.setItem = () => { throw new Error('Storage blocked') }
+  })
+  const blockedPage = await blocked.newPage()
+  await blockedPage.goto(origin)
+  await theme(blockedPage, 'light')
+  await blockedPage.getByRole('heading', { name: 'Welcome back', exact: true }).waitFor()
+  await blockedPage.getByRole('button', { name: 'Switch to dark theme', exact: true }).click()
+  await theme(blockedPage, 'dark')
+  assert.deepEqual(errors, [])
+  await blocked.close()
+  console.log('PASS: light/dark toggle, saved preference and reload, Settings choices, live system changes, cross-tab sync, dialogs, mobile layout, sign-in, and blocked storage fallback.')
+} finally { await browser.close() }

@@ -80,7 +80,7 @@ function MapLegend({ activeLayers, hazard, hazardColor }: { activeLayers: MapLay
 }
 
 interface LiveMapProps {
-  token: string
+  sessionKey: string
   onCentersLoaded?: (centers: MapCenter[]) => void
   full?: boolean
   fullScreen?: boolean
@@ -91,8 +91,8 @@ interface LiveMapProps {
   onMinimize?: () => void
 }
 
-export function LiveMap({ token, onCentersLoaded, full = false, fullScreen = false, visibleLayers = ['evacuation'], barangay = 'All barangays', urbanHazard = 'Flooding', onFeatureSelect, onMinimize }: LiveMapProps) {
-  const { centers, error: centerError, loading: centersLoading } = useCenterMap(token)
+export function LiveMap({ sessionKey, onCentersLoaded, full = false, fullScreen = false, visibleLayers = ['evacuation'], barangay = 'All barangays', urbanHazard = 'Flooding', onFeatureSelect, onMinimize }: LiveMapProps) {
+  const { centers, error: centerError, loading: centersLoading } = useCenterMap(sessionKey)
   const centerMarkersRef = useRef(new Map<number, maplibregl.Marker>())
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)

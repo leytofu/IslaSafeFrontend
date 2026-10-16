@@ -2,10 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 import { apiFetch } from '../utils/api'
-import { environment } from '../config/environment'
 import type { LiveCenter, Page } from '../types/evacuation'
 
-export function useEvacuationCenters(token: string, query: string) {
+export function useEvacuationCenters(sessionKey: string, query: string) {
   const [centers, setCenters] = useState<LiveCenter[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -18,11 +17,11 @@ export function useEvacuationCenters(token: string, query: string) {
     try {
       // The API stays paginated for center lookups. Collect every directory
       // page so scrolling can reach every saved facility without page controls.
-      const response = await apiFetch<Page<LiveCenter>>(`/admin/evacuation/centers?page=1&q=${encodeURIComponent(query)}`, { token })
+      const response = await apiFetch<Page<LiveCenter>>(`/admin/evacuation/centers?page=1&q=${encodeURIComponent(query)}`, { sessionKey })
       if (request !== generation.current) return
       const collected = [...response.data]
       for (let nextPage = 2; nextPage <= response.last_page; nextPage++) {
-        const next = await apiFetch<Page<LiveCenter>>(`/admin/evacuation/centers?page=${nextPage}&q=${encodeURIComponent(query)}`, { token })
+        const next = await apiFetch<Page<LiveCenter>>(`/admin/evacuation/centers?page=${nextPage}&q=${encodeURIComponent(query)}`, { sessionKey })
         if (request !== generation.current) return
         collected.push(...next.data)
       }
@@ -32,7 +31,7 @@ export function useEvacuationCenters(token: string, query: string) {
       }
     } catch (caught) { if (request === generation.current) setError(caught instanceof Error ? caught.message : 'Unable to refresh centers.') }
     finally { if (request === generation.current) setLoading(false) }
-  }, [token, query])
+  }, [sessionKey, query])
   const refreshRef = useRef(refresh)
   useEffect(() => { refreshRef.current = refresh }, [refresh])
   useEffect(() => {
@@ -44,10 +43,16 @@ export function useEvacuationCenters(token: string, query: string) {
   }, [refresh, invalidate])
   useEffect(() => {
     const key = import.meta.env.VITE_REVERB_APP_KEY?.trim()
-    if (!key || !token) return
+    if (!key || !sessionKey) return
     let active = true
     const echo = new Echo({ broadcaster: 'reverb', Pusher, key, wsHost: import.meta.env.VITE_REVERB_HOST || 'localhost', wsPort: Number(import.meta.env.VITE_REVERB_PORT || 8080), wssPort: Number(import.meta.env.VITE_REVERB_PORT || 443), forceTLS: import.meta.env.VITE_REVERB_SCHEME === 'https', enabledTransports: ['ws', 'wss'],
-      authEndpoint: `${environment.api.baseUrl}/broadcasting/auth`, auth: { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } },
+      authorizer: (channel) => ({
+        authorize: (socketId, callback) => {
+          apiFetch<{ auth: string }>('/broadcasting/auth', { method: 'POST', body: { socket_id: socketId, channel_name: channel.name } })
+            .then((data) => callback(null, data))
+            .catch((error: unknown) => callback(error instanceof Error ? error : new Error('Live update authentication failed.'), null))
+        },
+      }),
     })
     const connected = () => { if (active) { setConnection('Live updates connected'); void refreshRef.current() } }
     const disconnected = () => { if (active) setConnection('Refresh fallback · WebSocket disconnected') }
@@ -59,6 +64,6 @@ export function useEvacuationCenters(token: string, query: string) {
     const socket = echo.connector.pusher.connection
     socket.bind('disconnected', disconnected); socket.bind('unavailable', disconnected); socket.bind('error', disconnected)
     return () => { active = false; socket.unbind('disconnected', disconnected); socket.unbind('unavailable', disconnected); socket.unbind('error', disconnected); echo.leave('evacuation.admin'); echo.disconnect() }
-  }, [token])
+  }, [sessionKey])
   return { centers, error, loading, connection, revision, refresh }
 }

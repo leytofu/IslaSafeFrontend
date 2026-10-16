@@ -5,6 +5,7 @@ import { isRole, roleLabels } from '../config/roles'
 import type { AuthUser } from '../hooks/useAuth'
 import './SettingsPage.css'
 import { TeamRoles } from '../components/TeamRoles'
+import { AppearanceSettings } from '../components/AppearanceSettings'
 
 const settingsTabs = [
   { label: 'Profile', icon: Users }, { label: 'Account & security', icon: ShieldAlert }, { label: 'Notifications', icon: BellRing },
@@ -143,20 +144,20 @@ function ProfileForm({ user, onSave }: ProfileFormProps) {
 }
 
 interface SettingsPageProps {
-  token: string
+  sessionKey: string
   user: AuthUser | null
   onSaveProfile: (input: { name: string; email: string; contact_number: string; office: string; jurisdiction: string; avatar?: File }) => Promise<string | null>
 }
 
-export function SettingsPage({ user, token, onSaveProfile }: SettingsPageProps) {
+export function SettingsPage({ user, sessionKey, onSaveProfile }: SettingsPageProps) {
   const [active, setActive] = useState('Profile')
 
   const content: Record<string, ReactNode> = {
     Profile: user ? <ProfileForm key={user.id} onSave={onSaveProfile} user={user} /> : null,
-    'Account & security': <SettingsRows title="Account & security" rows={[['Appearance', 'Dark mode', 'toggle'], ['Change password', 'Last changed 3 months ago', 'button'], ['Two-factor authentication', 'Add an extra layer of security', 'toggle'], ['Login alerts', 'Email on a new device sign-in', 'toggle'], ['Active sessions', '2 devices currently signed in', 'button']]} />,
+    'Account & security': <><AppearanceSettings /><SettingsRows title="Account & security" rows={[['Change password', 'Last changed 3 months ago', 'button'], ['Two-factor authentication', 'Add an extra layer of security', 'toggle'], ['Login alerts', 'Email on a new device sign-in', 'toggle'], ['Active sessions', '2 devices currently signed in', 'button']]} /></>,
     Notifications: <SettingsRows title="Notifications" rows={[['New SOS alerts', 'Real-time push when a resident sends SOS', 'toggle'], ['Weather / AWS updates', 'Automated weather station bulletins', 'toggle'], ['Evacuation capacity warnings', 'Notify at 80% center occupancy', 'toggle'], ['Email digest', 'Daily summary at 6:00 PM', 'toggle'], ['SMS escalation', 'Text message for critical priority only', 'toggle']]} />,
     'System config': <SettingsRows title="System configuration" rows={[['AWS API connection', 'Automated Weather Station integration', 'Connected'], ['Offline map sync', 'Push hazard updates to resident devices', 'toggle'], ['Resident app version', 'Current public application', 'v2.4.1'], ['Database backup', 'Last secure backup 4 hours ago', 'View'], ['Audit log', 'Review administrative actions', 'View']]} />,
-    'Team & roles': <TeamRoles token={token} />,
+    'Team & roles': <TeamRoles sessionKey={sessionKey} />,
   }
 
   return <div className="settings-layout"><Panel className="settings-nav panel--pad-3"><nav className="stack-1">{settingsTabs.map(({ label, icon: Icon }) => <button className={`settings-tab${active === label ? ' is-active' : ''}`} key={label} onClick={() => setActive(label)} type="button"><Icon className="settings-tab__icon" />{label}</button>)}</nav></Panel><Panel className="panel--pad-5-7">{content[active]}</Panel></div>

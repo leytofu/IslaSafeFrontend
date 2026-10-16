@@ -4,7 +4,7 @@ import Pusher from 'pusher-js'
 import { apiFetch } from '../utils/api'
 import type { MapCenter } from '../types/evacuation'
 
-export function useCenterMap(token: string) {
+export function useCenterMap(sessionKey: string) {
   const [centers, setCenters] = useState<MapCenter[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -13,12 +13,12 @@ export function useCenterMap(token: string) {
   const refresh = useCallback(async () => {
     const request = ++generation.current
     try {
-      const result = await apiFetch<{ data: MapCenter[] }>('/admin/evacuation/map', { token })
+      const result = await apiFetch<{ data: MapCenter[] }>('/admin/evacuation/map', { sessionKey })
       if (request === generation.current) { setCenters(result.data); setError('') }
     } catch (caught) {
       if (request === generation.current) setError(caught instanceof Error ? caught.message : 'Unable to update center locations.')
     } finally { if (request === generation.current) setLoading(false) }
-  }, [token])
+  }, [sessionKey])
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0)
     const resume = () => { if (!document.hidden) void refresh() }

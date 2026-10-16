@@ -26,7 +26,10 @@ try {
   const errors = []
   let creationRequests = 0
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.addInitScript((value) => localStorage.setItem('islasafe.session', JSON.stringify(value)), session)
+  // Auth restoration now uses /auth/me and an HttpOnly session cookie. This
+  // isolated fixture supplies authenticated API responses without browser tokens.
+  // Real session/CSRF enforcement is exercised separately by WebSessionTest.
+  await page.context().addCookies([{ name: 'XSRF-TOKEN', value: 'fixture-csrf', url: process.env.FRONTEND_URL || 'http://localhost:5173' }])
   await page.route('**/api/**', async (route) => {
     const incoming = route.request(); const url = new URL(incoming.url())
     if (incoming.method() === 'POST' && url.pathname === '/api/admin/evacuation/centers') creationRequests++

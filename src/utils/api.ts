@@ -13,8 +13,22 @@ export class ApiError extends Error {
 interface ApiOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   body?: unknown
-  token?: string
+  /** Non-secret generation identifier scopes expiry events to the active UI. */
+  sessionKey?: string
   timeoutMs?: number
+}
+
+function readCsrfCookie(): string {
+  const cookie = document.cookie.split('; ').find((value) => value.startsWith('XSRF-TOKEN='))
+  return cookie ? decodeURIComponent(cookie.slice('XSRF-TOKEN='.length)) : ''
+}
+
+export async function initializeCsrf(signal: AbortSignal = AbortSignal.timeout(environment.api.timeoutMs)): Promise<void> {
+  const apiUrl = new URL(environment.api.baseUrl, window.location.origin)
+  const response = await fetch(new URL('/sanctum/csrf-cookie', apiUrl), {
+    credentials: 'include', headers: { Accept: 'application/json' }, signal,
+  })
+  if (!response.ok) throw new ApiError('Unable to initialize a secure session. Please try again.', response.status)
 }
 
 async function readErrorMessage(response: Response): Promise<string> {
@@ -34,11 +48,11 @@ async function readErrorMessage(response: Response): Promise<string> {
 }
 
 /**
- * Fetch wrapper for the Laravel API: JSON in/out, Bearer token, timeout,
+ * Fetch wrapper for the Laravel API: JSON in/out, session cookies, timeout,
  * and friendly error messages extracted from Laravel validation payloads.
  */
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { method = 'GET', body, token, timeoutMs = environment.api.timeoutMs } = options
+  const { method = 'GET', body, sessionKey, timeoutMs = environment.api.timeoutMs } = options
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
 
@@ -46,19 +60,22 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     // FormData bodies (file uploads) must not be JSON-stringified — the
     // browser sets the multipart boundary automatically.
     const isFormData = body instanceof FormData
+    if (method !== 'GET' && !readCsrfCookie()) await initializeCsrf(controller.signal)
 
     const response = await fetch(`${environment.api.baseUrl}${path}`, {
       method,
+      credentials: 'include',
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
         ...(body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(method !== 'GET' ? { 'X-XSRF-TOKEN': readCsrfCookie() } : {}),
       },
       body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
     })
 
     if (!response.ok) {
+      if (response.status === 401) window.dispatchEvent(new CustomEvent('islasafe:unauthenticated', { detail: sessionKey }))
       throw new ApiError(await readErrorMessage(response), response.status)
     }
 

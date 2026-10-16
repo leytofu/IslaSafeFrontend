@@ -4,16 +4,16 @@ import { apiFetch } from '../utils/api'
 import type { LiveCenter } from '../types/evacuation'
 
 type Action = 'deactivate' | 'reactivate' | 'delete'
-export function CenterActions({ center, token, onChanged }: { center: LiveCenter; token: string; onChanged: (message: string) => Promise<void> }) {
+export function CenterActions({ center, sessionKey, onChanged }: { center: LiveCenter; sessionKey: string; onChanged: (message: string) => Promise<void> }) {
   const [action, setAction] = useState<Action | null>(null)
   return <>
     <button className="action-button" type="button" disabled={center.current > 0 && center.status === 'Operational'} title={center.current > 0 ? 'Check out or transfer occupants before deactivating.' : undefined}
       aria-label={`${center.status === 'Operational' ? 'Deactivate' : 'Reactivate'} ${center.name}`} onClick={() => setAction(center.status === 'Operational' ? 'deactivate' : 'reactivate')}><Power className="action-button__icon" />{center.status === 'Operational' ? 'Deactivate' : 'Reactivate'}</button>
     <button className="action-button evac-delete-button" type="button" disabled={center.current > 0} title={center.current > 0 ? 'Check out or transfer occupants before deleting.' : undefined} aria-label={'Delete ' + center.name} onClick={() => setAction('delete')}><Trash2 className="action-button__icon" />Delete</button>
-    {action && <CenterActionConfirmation key={action} center={center} token={token} action={action} onClose={() => setAction(null)} onChanged={onChanged} />}
+    {action && <CenterActionConfirmation key={action} center={center} sessionKey={sessionKey} action={action} onClose={() => setAction(null)} onChanged={onChanged} />}
   </>
 }
-function CenterActionConfirmation({ center, token, action, onClose, onChanged }: { center: LiveCenter; token: string; action: Action; onClose: () => void; onChanged: (message: string) => Promise<void> }) {
+function CenterActionConfirmation({ center, sessionKey, action, onClose, onChanged }: { center: LiveCenter; sessionKey: string; action: Action; onClose: () => void; onChanged: (message: string) => Promise<void> }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const lock = useRef(false)
   const [busy, setBusy] = useState(false)
@@ -28,7 +28,7 @@ function CenterActionConfirmation({ center, token, action, onClose, onChanged }:
     if (lock.current) return
     lock.current = true; setBusy(true); setError('')
     try {
-      await apiFetch(`/admin/evacuation/centers/${center.id}`, { token, method: action === 'delete' ? 'DELETE' : 'PATCH', ...(action === 'delete' ? {} : { body: { status: action === 'deactivate' ? 'Closed' : 'Operational' } }) })
+      await apiFetch(`/admin/evacuation/centers/${center.id}`, { sessionKey, method: action === 'delete' ? 'DELETE' : 'PATCH', ...(action === 'delete' ? {} : { body: { status: action === 'deactivate' ? 'Closed' : 'Operational' } }) })
       const message = action === 'delete' ? 'Evacuation center deleted.' : action === 'deactivate' ? 'Evacuation center deactivated.' : 'Evacuation center reactivated.'
       await onChanged(message)
       onClose()

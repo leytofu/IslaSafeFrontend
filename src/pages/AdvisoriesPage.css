@@ -18,3 +18,8 @@
 .advisory-form {
   height: fit-content;
 }
+
+.advisory-fields { border:0; padding:0; margin:1rem 0 0; min-width:0; }
+.advisory-detail-message { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; margin:1.25rem 0; }
+.advisory-detail-meta { color:var(--slate-500); font-size:.8125rem; line-height:1.6; overflow-wrap:anywhere; }
+.advisory-card__title { overflow-wrap:anywhere; }

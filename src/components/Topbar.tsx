@@ -1,10 +1,17 @@
-import { Bell, Menu, Search, Sun } from 'lucide-react'
+import { Menu } from 'lucide-react'
+import { ThemeToggle } from './ThemeToggle'
+import { HeaderSearch } from './HeaderSearch'
+import { HeaderNotifications } from './HeaderNotifications'
+import { LiveClock } from './LiveClock'
+import type { HeaderResult } from '../types/header'
 import type { PageName } from './Sidebar'
 import './Topbar.css'
 
 interface TopbarProps {
   page: PageName
   onOpenMenu: () => void
+  sessionKey: string
+  onOpenRecord: (result: HeaderResult) => void
 }
 
 const pageDescriptions: Partial<Record<PageName, string>> = {
@@ -13,7 +20,7 @@ const pageDescriptions: Partial<Record<PageName, string>> = {
   'SOS Management': 'Coordinate incoming calls for emergency assistance.',
 }
 
-export function Topbar({ page, onOpenMenu }: TopbarProps) {
+export function Topbar({ page, onOpenMenu, sessionKey, onOpenRecord }: TopbarProps) {
   return (
     <header className="topbar">
       <button aria-label="Open navigation" className="topbar__menu" onClick={onOpenMenu} type="button">
@@ -24,22 +31,10 @@ export function Topbar({ page, onOpenMenu }: TopbarProps) {
         <p className="topbar__subtitle">{pageDescriptions[page] ?? 'Coordinate response operations from one secure workspace.'}</p>
       </div>
 
-      <label className="topbar__search">
-        <Search className="topbar__search-icon" />
-        <input className="topbar__search-input" placeholder="Search residents, SOS ID, barangay..." />
-      </label>
-
-      <div className="topbar__clock">
-        <p className="topbar__clock-time">09:41 AM</p>
-        <p>Sat, May 25, 2024</p>
-      </div>
-      <button aria-label="Toggle theme" className="topbar__icon-button" type="button">
-        <Sun />
-      </button>
-      <button aria-label="View notifications" className="topbar__icon-button" type="button">
-        <Bell />
-        <span className="topbar__notification-dot" />
-      </button>
+      <HeaderSearch sessionKey={sessionKey} onSelect={onOpenRecord} />
+      <LiveClock />
+      <ThemeToggle />
+      <HeaderNotifications sessionKey={sessionKey} onSelect={onOpenRecord} />
     </header>
   )
 }

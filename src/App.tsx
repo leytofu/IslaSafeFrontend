@@ -18,6 +18,8 @@ import { SosAlertOverlay } from './components/SosAlertOverlay'
 import { canManageSos, pagesForRole, type Role } from './config/roles'
 import { useAuth } from './hooks/useAuth'
 import { useSosRequests } from './hooks/useSosRequests'
+import type { HeaderResult } from './types/header'
+import { HeaderResidentDialog } from './components/HeaderResidentDialog'
 
 function LoadingScreen() {
   return (
@@ -55,6 +57,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [isMapOnlyView, setIsMapOnlyView] = useState(false)
   const [selectedSosRequestId, setSelectedSosRequestId] = useState<string | null>(null)
+  const [headerTarget, setHeaderTarget] = useState<{ sessionKey: string; result: HeaderResult } | null>(null)
   const [resetRequest, setResetRequest] = useState<ResetRequest | null>(readResetRequest)
   // Bumped when the profile button is clicked so SettingsPage remounts on the Profile tab.
   const [settingsTabKey, setSettingsTabKey] = useState(0)
@@ -116,12 +119,13 @@ function App() {
 
   const { requests: sosRequests, updateStatus, unreadCount, pendingCount, acknowledgeRequests, loading: sosLoading, error: sosError, updatedAt: sosUpdatedAt, refresh: refreshSos } = useSosRequests({
     enabled: auth.status === 'authenticated',
-    token: auth.token ?? '',
+    sessionKey: auth.sessionKey ?? '',
     canManage,
     accountId: auth.user?.id ?? null,
   })
 
   const navigate = (page: PageName) => {
+    setHeaderTarget(null)
     setActivePage(page)
     setIsMapOnlyView(false)
 
@@ -147,6 +151,14 @@ function App() {
     setSelectedSosRequestId(id)
   }
 
+  const openHeaderRecord = (result: HeaderResult) => {
+    if (result.kind === 'sos') { openSosRequest(result.id); return }
+    if (result.kind === 'incident') navigate('Incident Monitoring')
+    if (result.kind === 'center') navigate('Evacuation Centers')
+    setHeaderTarget({ sessionKey: auth.sessionKey ?? '', result })
+  }
+  const selectedHeaderRecord = headerTarget?.sessionKey === auth.sessionKey ? headerTarget.result : null
+
   // A password-reset link wins over every other view — the user may not even
   // be signed in (or may have an old session) when they open it.
   if (resetRequest) {
@@ -163,22 +175,22 @@ function App() {
 
   const renderContent = () => {
     if (page === 'Dashboard') {
-      return <DashboardPage token={auth.token ?? ''} onOpenMap={() => { setActivePage('Hazard Map'); setIsMapOnlyView(true) }} onOpenSosRequest={openSosRequest} onOpenSosManagement={() => navigate('SOS Management')} sosRequests={sosRequests} />
+      return <DashboardPage sessionKey={auth.sessionKey ?? ''} onOpenMap={() => { setActivePage('Hazard Map'); setIsMapOnlyView(true) }} onOpenSosRequest={openSosRequest} onOpenSosManagement={() => navigate('SOS Management')} onOpenAdvisories={() => navigate('Advisories')} onOpenIncidents={() => navigate('Incident Monitoring')} sosRequests={sosRequests} />
     }
 
     if (page === 'Hazard Map') {
-      return <HazardMapPage token={auth.token ?? ''} onMapOnlyChange={setIsMapOnlyView} />
+      return <HazardMapPage sessionKey={auth.sessionKey ?? ''} onMapOnlyChange={setIsMapOnlyView} />
     }
 
     const pages: Partial<Record<PageName, ReactElement>> = {
       'SOS Management': <SosManagementPage onClearSelectedRequest={() => setSelectedSosRequestId(null)} onRefresh={refreshSos} loading={sosLoading} error={sosError} updatedAt={sosUpdatedAt} onUpdateStatus={updateStatus} requests={sosRequests} selectedRequestId={selectedSosRequestId} />,
-      'Evacuation Centers': <EvacuationCentersPage token={auth.token ?? ''} />,
-      'Incident Monitoring': <IncidentMonitoringPage />,
+      'Evacuation Centers': <EvacuationCentersPage sessionKey={auth.sessionKey ?? ''} initialCenterId={selectedHeaderRecord?.kind === 'center' ? Number(selectedHeaderRecord.id) : null} onClearInitial={() => setHeaderTarget(null)} />,
+      'Incident Monitoring': <IncidentMonitoringPage sessionKey={auth.sessionKey ?? ''} initialIncidentId={selectedHeaderRecord?.kind === 'incident' ? Number(selectedHeaderRecord.id) : null} onClearInitial={() => setHeaderTarget(null)} />,
       'MDRRMO Link / AWS': <WeatherStationPage />,
-      Advisories: <AdvisoriesPage />,
+      Advisories: <AdvisoriesPage key={auth.sessionKey} sessionKey={auth.sessionKey ?? ''} />,
       Residents: <ResidentsPage />,
       'Reports & Analytics': <ReportsPage />,
-      Settings: <SettingsPage key={settingsTabKey} token={auth.token ?? ''} onSaveProfile={auth.updateProfile} user={auth.user} />,
+      Settings: <SettingsPage key={settingsTabKey} sessionKey={auth.sessionKey ?? ''} onSaveProfile={auth.updateProfile} user={auth.user} />,
     }
 
     return pages[page] ?? null
@@ -189,7 +201,7 @@ function App() {
   if (isMapOnlyView) {
     return (
       <>
-        <HazardMapPage token={auth.token ?? ''} mapOnly onMapOnlyChange={setIsMapOnlyView} />
+        <HazardMapPage sessionKey={auth.sessionKey ?? ''} mapOnly onMapOnlyChange={setIsMapOnlyView} />
         {alertOverlay}
       </>
     )
@@ -202,12 +214,13 @@ function App() {
         <div className="app-shell__bg app-shell__bg--grid" />
         <Sidebar sosCount={pendingCount} activePage={page} collapsed={sidebarCollapsed} isOpen={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={navigate} onOpenProfile={openProfile} onSignOut={auth.signOut} onToggleCollapse={toggleSidebar} allowedPages={visiblePages} user={auth.user} />
         <main className="app-main">
-          <Topbar onOpenMenu={() => setMenuOpen(true)} page={page} />
+          <Topbar key={auth.sessionKey} onOpenMenu={() => setMenuOpen(true)} page={page} sessionKey={auth.sessionKey ?? ''} onOpenRecord={openHeaderRecord} />
           <div className="app-content">{renderContent()}</div>
         </main>
         <footer className="app-footer">Developed by <span>Four Sisters and a Wedding</span></footer>
       </div>
       {alertOverlay}
+      {selectedHeaderRecord?.kind === 'resident' && <HeaderResidentDialog resident={selectedHeaderRecord} onClose={() => setHeaderTarget(null)} />}
     </>
   )
 }

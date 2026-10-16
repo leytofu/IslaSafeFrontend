@@ -2,6 +2,10 @@
 
 The IslaSafe Admin Web App is a React and TypeScript dashboard for monitoring SOS requests, incidents, hazard-map information, evacuation centers, advisories, residents, and weather conditions.
 
+Authentication uses Laravel Sanctum session cookies and CSRF protection. Keep the
+web and API on the same hostname locally; HTTPS deployments require Secure
+cookies and explicit stateful hosts. See [authentication setup](../backend/docs/authentication.md).
+
 ## Requirements
 
 Install the following before running the frontend:

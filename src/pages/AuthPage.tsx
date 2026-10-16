@@ -3,6 +3,7 @@ import { AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhol
 import { ForgotPasswordForm } from '../components/ForgotPasswordForm'
 import { ResetPasswordForm } from '../components/ResetPasswordForm'
 import { CinematicIntro } from '../components/CinematicIntro'
+import { ThemeToggle } from '../components/ThemeToggle'
 import './AuthPage.css'
 
 export interface ResetRequest {
@@ -154,6 +155,7 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
           <div><p className="auth-hero__brand-name">IslaSafe</p><p className="auth-hero__brand-tag">MDRRMO OPERATIONS</p></div>
         </div>
         <span className="auth-shell__caption"><ShieldCheck aria-hidden="true" /> Municipal disaster coordination</span>
+        <ThemeToggle />
         </header>
       <section className="auth-hero" inert={!introComplete}>
         <div className="auth-hero__claim">

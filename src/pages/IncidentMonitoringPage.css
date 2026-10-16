@@ -4,6 +4,8 @@
   min-width: 1060px;
 }
 
+.incident-table time { display:block; white-space:normal; line-height:1.5; }
+
 .incident-table col:nth-child(1) { width: 112px; }
 .incident-table col:nth-child(2) { width: 165px; }
 .incident-table col:nth-child(3) { width: 190px; }

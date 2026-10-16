@@ -7,7 +7,7 @@ import { acknowledgeSosInbox, emptySosInbox, readSosInbox, receiveSosInbox, type
 const POLL_INTERVAL_MS = 2_000
 interface UseSosRequestsOptions {
   enabled: boolean
-  token: string
+  sessionKey: string
   canManage: boolean
   accountId: number | null
 }
@@ -19,7 +19,7 @@ function saveInbox(key: string, inbox: SosInbox) {
 }
 
 /** Real resident submissions only. Polling needs no separate WebSocket server. */
-export function useSosRequests({ enabled, token, canManage, accountId }: UseSosRequestsOptions) {
+export function useSosRequests({ enabled, sessionKey, canManage, accountId }: UseSosRequestsOptions) {
   const [requests, setRequests] = useState<SosRequest[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -29,12 +29,12 @@ export function useSosRequests({ enabled, token, canManage, accountId }: UseSosR
   const updates = useRef(new Set<string>())
   const revision = useRef(0)
   const refreshRef = useRef<(() => Promise<void>) | null>(null)
-  const activeToken = useRef(token)
+  const activeSessionKey = useRef(sessionKey)
   const storageKey = accountId === null ? null : `islasafe.sos.inbox.${accountId}`
-  const pollingEnabled = enabled && canManage && token.length > 0 && storageKey !== null
+  const pollingEnabled = enabled && canManage && sessionKey.length > 0 && storageKey !== null
 
   useEffect(() => {
-    activeToken.current = token
+    activeSessionKey.current = sessionKey
     revision.current++
     updates.current.clear()
     // oxlint-disable-next-line react/set-state-in-effect -- Invalidate the authenticated API cache when its session changes.
@@ -54,7 +54,7 @@ export function useSosRequests({ enabled, token, canManage, accountId }: UseSosR
       fetching = true
       const version = revision.current
       try {
-        const response = await apiFetch<{ data: ApiSosRecord[] }>('/sos-requests', { token })
+        const response = await apiFetch<{ data: ApiSosRecord[] }>('/sos-requests', { sessionKey })
         if (cancelled || version !== revision.current) return
         const mapped = response.data.map(toSosRequest)
         // Re-read IDs so acknowledging in another admin tab is respected.
@@ -91,7 +91,7 @@ export function useSosRequests({ enabled, token, canManage, accountId }: UseSosR
       window.removeEventListener('online', online)
       window.removeEventListener('storage', storage)
     }
-  }, [pollingEnabled, storageKey, token])
+  }, [pollingEnabled, storageKey, sessionKey])
 
   const acknowledgeRequests = useCallback(() => {
     if (!pollingEnabled || !storageKey) return
@@ -105,14 +105,14 @@ export function useSosRequests({ enabled, token, canManage, accountId }: UseSosR
     if (updates.current.has(id)) return
     updates.current.add(id); revision.current++
     try {
-      const response = await apiFetch<{ data: ApiSosRecord }>(`/sos-requests/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status }, token })
-      if (activeToken.current !== token) return
+      const response = await apiFetch<{ data: ApiSosRecord }>(`/sos-requests/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status }, sessionKey })
+      if (activeSessionKey.current !== sessionKey) return
       const saved = toSosRequest(response.data)
       setRequests(current => current.map(request => request.id === saved.id ? saved : request))
     } finally {
       updates.current.delete(id)
     }
-  }, [pollingEnabled, token])
+  }, [pollingEnabled, sessionKey])
 
   return { requests, unreadCount: pollingEnabled ? unreadCount : 0, pendingCount: requests.filter(request => request.status === 'Pending').length,
     loading, error, updatedAt, refresh, updateStatus, acknowledgeRequests }

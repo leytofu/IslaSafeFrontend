@@ -1,0 +1,13 @@
+.modal.incident-dialog { margin:auto; padding:1.25rem; width:min(640px,calc(100vw - 2rem)); max-width:640px; height:fit-content; max-height:calc(100dvh - 2rem); overflow-y:auto; color:var(--slate-100); }
+.incident-dialog:not([open]) { display:none; }
+.incident-dialog::backdrop { background:rgb(2 6 23 / .75); backdrop-filter:blur(6px); }
+.incident-dialog__heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1.25rem; }
+.incident-dialog__heading h2 { font-size:1.125rem; font-weight:600; }
+.incident-dialog__fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; border:0; padding:0; margin:0; min-width:0; }
+.incident-dialog__fields .field { min-width:0; }
+.incident-dialog__fields .evac-filter { width:100%; min-width:0; }
+.incident-dialog__description { grid-column:1 / -1; }
+.incident-dialog__fields textarea { resize:vertical; }
+.incident-dialog__footer { display:flex; justify-content:flex-end; gap:.75rem; margin-top:1.25rem; }
+.incident-dialog__error { margin-top:1rem; color:var(--rose-300); font-size:.8125rem; }
+@media(max-width:599px) { .incident-dialog__fields { grid-template-columns:minmax(0,1fr); } }

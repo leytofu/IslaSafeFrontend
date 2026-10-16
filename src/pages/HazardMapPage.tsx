@@ -27,12 +27,12 @@ function LayerToggle({ color, enabled, label, onToggle }: { color: string; enabl
 }
 
 interface HazardMapPageProps {
-  token: string
+  sessionKey: string
   mapOnly?: boolean
   onMapOnlyChange?: (mapOnly: boolean) => void
 }
 
-export function HazardMapPage({ token, mapOnly = false, onMapOnlyChange }: HazardMapPageProps) {
+export function HazardMapPage({ sessionKey, mapOnly = false, onMapOnlyChange }: HazardMapPageProps) {
   const [visibleLayers, setVisibleLayers] = useState<MapLayerKey[]>(['evacuation'])
   const [barangay, setBarangay] = useState('All barangays')
   const [urbanHazard, setUrbanHazard] = useState<UrbanHazard>('Flooding')
@@ -44,7 +44,7 @@ export function HazardMapPage({ token, mapOnly = false, onMapOnlyChange }: Hazar
   if (mapOnly) {
     return (
       <main aria-label="Full CPG map view" className="hazard-map-only">
-        <LiveMap token={token} barangay={barangay === 'All CPG barangays' ? 'All barangays' : barangay} full fullScreen onFeatureSelect={setSelectedFeature} onMinimize={() => onMapOnlyChange?.(false)} urbanHazard={urbanHazard} visibleLayers={visibleLayers} />
+        <LiveMap sessionKey={sessionKey} barangay={barangay === 'All CPG barangays' ? 'All barangays' : barangay} full fullScreen onFeatureSelect={setSelectedFeature} onMinimize={() => onMapOnlyChange?.(false)} urbanHazard={urbanHazard} visibleLayers={visibleLayers} />
       </main>
     )
   }
@@ -61,7 +61,7 @@ export function HazardMapPage({ token, mapOnly = false, onMapOnlyChange }: Hazar
             <div className="hazard-reset-area"><button className="action-button action-button--h10 action-button--block" onClick={() => setBarangay('All barangays')} type="button"><Route className="action-button__icon" /> Reset view</button></div>
           </section>
 
-          <LiveMap token={token} barangay={barangay === 'All CPG barangays' ? 'All barangays' : barangay} full onFeatureSelect={setSelectedFeature} urbanHazard={urbanHazard} visibleLayers={visibleLayers} />
+          <LiveMap sessionKey={sessionKey} barangay={barangay === 'All CPG barangays' ? 'All barangays' : barangay} full onFeatureSelect={setSelectedFeature} urbanHazard={urbanHazard} visibleLayers={visibleLayers} />
 
           <section aria-live="polite" className="hazard-selection"><span className="hazard-selection__icon"><LocateFixed /></span><div><p className="hazard-selection__label">Selected map item</p><p className="hazard-selection__text">{selectedFeature}</p></div></section>
 

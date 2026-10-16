@@ -990,7 +990,7 @@ button {
   -webkit-appearance: none;
   background-color: var(--auth-input-background) !important;
   border-color: var(--auth-input-border) !important;
-  color: #f1f5f9 !important;
+  color: var(--slate-100) !important;
   outline: none !important;
   transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
 }
@@ -1021,10 +1021,10 @@ button {
 .auth-input:autofill:active {
   -webkit-box-shadow: 0 0 0 1000px var(--auth-input-background) inset !important;
   box-shadow: 0 0 0 1000px var(--auth-input-background) inset !important;
-  -webkit-text-fill-color: #f1f5f9 !important;
+  -webkit-text-fill-color: var(--slate-100) !important;
   background-color: var(--auth-input-background) !important;
   border-color: var(--auth-input-border) !important;
-  caret-color: #f1f5f9;
+  caret-color: var(--slate-100);
   outline: none !important;
   transition: none !important;
 }

@@ -11,9 +11,9 @@ interface TeamUser {
   role: 'admin' | 'campmanager'
 }
 
-function ManagerActions({ account, token, onUpdated, onDeleted }: {
+function ManagerActions({ account, sessionKey, onUpdated, onDeleted }: {
   account: TeamUser
-  token: string
+  sessionKey: string
   onUpdated: (user: TeamUser) => void
   onDeleted: () => void
 }) {
@@ -38,7 +38,7 @@ function ManagerActions({ account, token, onUpdated, onDeleted }: {
     try {
       if (fields) {
         const response = await apiFetch<{ user: TeamUser; message: string }>('/admin/team/' + account.id, {
-          method: 'PATCH', token,
+          method: 'PATCH', sessionKey,
           body: {
             name: String(fields.get('name')).trim(),
             email: String(fields.get('email')).trim(),
@@ -49,7 +49,7 @@ function ManagerActions({ account, token, onUpdated, onDeleted }: {
         setMessage(response.message)
         setMode('closed')
       } else {
-        await apiFetch('/admin/team/' + account.id, { method: 'DELETE', token })
+        await apiFetch('/admin/team/' + account.id, { method: 'DELETE', sessionKey })
         onDeleted()
       }
     } catch (failure) {
@@ -90,7 +90,7 @@ function ManagerActions({ account, token, onUpdated, onDeleted }: {
   </div>
 }
 
-export function TeamRoles({ token }: { token: string }) {
+export function TeamRoles({ sessionKey }: { sessionKey: string }) {
   const [users, setUsers] = useState<TeamUser[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -105,14 +105,14 @@ export function TeamRoles({ token }: { token: string }) {
   useEffect(() => {
     let ignore = false
     if (preview) return
-    apiFetch<{ users: TeamUser[] }>('/admin/team', { token })
+    apiFetch<{ users: TeamUser[] }>('/admin/team', { sessionKey })
       .then(({ users: accounts }) => { if (!ignore) setUsers(accounts) })
       .catch((failure: unknown) => {
         if (!ignore) setLoadError(failure instanceof Error ? failure.message : 'Unable to load team accounts.')
       })
       .finally(() => { if (!ignore) setLoading(false) })
     return () => { ignore = true }
-  }, [token, preview, attempt])
+  }, [sessionKey, preview, attempt])
 
   async function createAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -130,7 +130,7 @@ export function TeamRoles({ token }: { token: string }) {
     try {
       const response = await apiFetch<{ user: TeamUser; message: string }>('/admin/team', {
         method: 'POST',
-        token,
+        sessionKey,
         body: {
           name: String(fields.get('name')).trim(),
           email: String(fields.get('email')).trim(),
@@ -184,7 +184,7 @@ export function TeamRoles({ token }: { token: string }) {
         <ul className="team-accounts">
           {users.map((account) => <li className="settings-row team-account" key={account.id}>
             <div className="team-account-heading"><div className="team-account-identity"><p className="settings-row__label">{account.name}</p><p className="settings-row__detail">{account.email}</p></div><StatusPill tone={account.role === 'admin' ? 'success' : 'info'}>{account.role === 'admin' ? 'Admin' : 'Camp Manager'}</StatusPill></div>
-            {account.role === 'campmanager' && <ManagerActions account={account} token={token}
+            {account.role === 'campmanager' && <ManagerActions account={account} sessionKey={sessionKey}
               onUpdated={(updated) => { setDeletedMessage(''); setUsers((current) => current.map((user) => user.id === updated.id ? updated : user)) }}
               onDeleted={() => { setUsers((current) => current.filter((user) => user.id !== account.id)); setDeletedMessage(account.name + "'s Camp Manager account has been deleted.") }} />}
           </li>)}
