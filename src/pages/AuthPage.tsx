@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes, type KeyboardEvent, type Ref } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type InputHTMLAttributes, type KeyboardEvent, type Ref } from 'react'
 import { AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Mail, MapPinned, Radio, ShieldCheck, Users } from 'lucide-react'
 import { ForgotPasswordForm } from '../components/ForgotPasswordForm'
 import { ResetPasswordForm } from '../components/ResetPasswordForm'
@@ -11,10 +11,24 @@ export interface ResetRequest {
   email: string
 }
 
+/** Length of the login → dashboard hand-off; shared with AuthPage.css. */
+const EXIT_DURATION_MS = 560
+const exitStyle = { '--auth-exit-duration': `${EXIT_DURATION_MS}ms` } as CSSProperties
+
+function prefersReducedMotion() {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 interface AuthPageProps {
   onSignIn: (email: string, password: string, remember: boolean) => Promise<string | null>
   resetRequest?: ResetRequest | null
   onClearReset?: () => void
+  /** True while the dashboard is already mounted behind the sliding login page. */
+  overlay?: boolean
+  /** Called the moment a sign-in is submitted, before the request resolves. */
+  onSignInStart?: () => void
+  /** Called once the exit animation has finished (instantly with reduced motion). */
+  onExitComplete?: () => void
 }
 
 const authInputClassName = 'auth-input auth-input-field'
@@ -81,7 +95,7 @@ function LoginPasswordField({ capsLockOn, disabled, error, inputRef, onChange, o
   )
 }
 
-export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPageProps) {
+export function AuthPage({ onSignIn, resetRequest = null, onClearReset, overlay = false, onSignInStart, onExitComplete }: AuthPageProps) {
   const [introComplete, setIntroComplete] = useState(Boolean(resetRequest))
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
@@ -102,6 +116,45 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
       emailInputRef.current?.focus()
     }
   }, [introComplete, showPasswordRecovery, resetRequest])
+
+  const pageRef = useRef<HTMLElement>(null)
+  const exitCompleteRef = useRef(onExitComplete)
+  useEffect(() => {
+    exitCompleteRef.current = onExitComplete
+  }, [onExitComplete])
+
+  // The hand-off detaches the page into a fixed overlay; record where it sits
+  // so `--auth-exit-top` keeps it visually exactly where the user left it.
+  useLayoutEffect(() => {
+    if (!overlay) return
+    pageRef.current?.style.setProperty('--auth-exit-top', `-${window.scrollY}px`)
+  }, [overlay])
+
+  // Hands the screen over to the dashboard once the slide-out has actually
+  // finished — driven by transitionend so a busy main thread cannot leave the
+  // (already invisible) page on screen, with a timeout as a safety net.
+  useEffect(() => {
+    if (!overlay) return
+    const node = pageRef.current
+    if (prefersReducedMotion() || !node) {
+      const immediate = window.setTimeout(() => exitCompleteRef.current?.(), 0)
+      return () => window.clearTimeout(immediate)
+    }
+    let fallback = 0
+    const finish = () => {
+      window.clearTimeout(fallback)
+      exitCompleteRef.current?.()
+    }
+    const onTransitionEnd = (event: TransitionEvent) => {
+      if (event.target === node && event.propertyName === 'opacity') finish()
+    }
+    node.addEventListener('transitionend', onTransitionEnd)
+    fallback = window.setTimeout(finish, EXIT_DURATION_MS + 250)
+    return () => {
+      node.removeEventListener('transitionend', onTransitionEnd)
+      window.clearTimeout(fallback)
+    }
+  }, [overlay])
 
   const validateEmail = (value: string): boolean => {
     if (!value.trim()) {
@@ -133,19 +186,26 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
 
     setSubmitting(true)
     setErrorMessage(null)
+    // Arms the hand-off before the request leaves: a rejected sign-in leaves the
+    // page exactly as it was, only a successful one starts the slide.
+    onSignInStart?.()
 
     try {
       const error = await onSignIn(email.trim(), password, rememberMe)
-      if (error) setErrorMessage(error)
+      if (error) {
+        setErrorMessage(error)
+        setSubmitting(false)
+      }
+      // On success `submitting` stays true: the form is gone in a moment and
+      // must not be able to fire a second sign-in while it animates away.
     } catch {
       setErrorMessage('Unable to sign in right now. Please try again.')
-    } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <main className="auth-page">
+    <main className={`auth-page${overlay ? ' auth-page--exit' : ''}`} inert={overlay} ref={pageRef} style={exitStyle}>
       {!introComplete && <CinematicIntro onComplete={setIntroComplete} />}
       <div className="auth-page__bg" />
       <div className="auth-shell">
@@ -235,7 +295,7 @@ export function AuthPage({ onSignIn, resetRequest = null, onClearReset }: AuthPa
         </div>
       </section>
       </div>
-      <footer className="auth-footer">Developed by <span>Four Sisters and a Wedding</span></footer>
+      <footer className="auth-footer"><div>© 2026 IslaSafe. All rights reserved.</div><div>Developed by <span>Four Sisters and a wedding.</span></div></footer>
     </main>
   )
 }

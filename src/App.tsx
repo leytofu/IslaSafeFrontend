@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState, type ReactElement } from 'react'
 import './components/table.css'
 import './App.css'
 import { DashboardPage } from './pages/DashboardPage'
@@ -33,6 +33,15 @@ function LoadingScreen() {
 }
 
 /**
+ * Drives the login → dashboard hand-off.
+ * - `idle`: no sign-in in flight (also the state a restored session starts in).
+ * - `attempt`: the login form submitted a sign-in; the login page is kept
+ *   mounted so it can play its exit animation once authentication succeeds.
+ * - `done`: the exit animation finished and the dashboard owns the screen.
+ */
+type AuthTransition = 'idle' | 'attempt' | 'done'
+
+/**
  * Detects the emailed password-reset link (/reset-password?token=...&email=...).
  * Returns an object (possibly with empty fields so the UI can explain that the
  * link is incomplete) whenever the path matches, null otherwise.
@@ -59,6 +68,8 @@ function App() {
   const [selectedSosRequestId, setSelectedSosRequestId] = useState<string | null>(null)
   const [headerTarget, setHeaderTarget] = useState<{ sessionKey: string; result: HeaderResult } | null>(null)
   const [resetRequest, setResetRequest] = useState<ResetRequest | null>(readResetRequest)
+  // Login → dashboard hand-off; see AuthTransition.
+  const [authTransition, setAuthTransition] = useState<AuthTransition>('idle')
   // Bumped when the profile button is clicked so SettingsPage remounts on the Profile tab.
   const [settingsTabKey, setSettingsTabKey] = useState(0)
   // Sidebar collapse state (toggled by tapping the logo) — persisted so the
@@ -159,19 +170,25 @@ function App() {
   }
   const selectedHeaderRecord = headerTarget?.sessionKey === auth.sessionKey ? headerTarget.result : null
 
-  // A password-reset link wins over every other view — the user may not even
-  // be signed in (or may have an old session) when they open it.
-  if (resetRequest) {
-    return <AuthPage onClearReset={clearResetRequest} onSignIn={auth.signIn} resetRequest={resetRequest} />
-  }
+  const authenticated = auth.status === 'authenticated' && Boolean(auth.user)
+  const loadingSession = auth.status === 'loading'
+  // The login page stays mounted while a sign-in is in flight and for the whole
+  // hand-off that follows a successful one, so it can animate away instead of
+  // being replaced by a hard cut. Restored sessions never enter this path.
+  const showAuth = resetRequest ? true : !loadingSession && (!authenticated || authTransition === 'attempt')
+  // True only while the dashboard is already mounted behind the login page.
+  const overlayAuth = authenticated && authTransition === 'attempt' && showAuth && !resetRequest
+  // Entrance animation for the dashboard; a restored session skips it.
+  const enterDashboard = authenticated && authTransition !== 'idle'
 
-  if (auth.status === 'loading') {
-    return <LoadingScreen />
-  }
+  const beginSignIn = useCallback(() => setAuthTransition('attempt'), [])
+  const finishSignInTransition = useCallback(() => setAuthTransition('done'), [])
 
-  if (auth.status === 'unauthenticated' || !auth.user) {
-    return <AuthPage onSignIn={auth.signIn} />
-  }
+  useLayoutEffect(() => {
+    // The login page pins itself above the dashboard; park the document at the
+    // top in the same frame so nothing shifts while both views overlap.
+    if (overlayAuth) window.scrollTo(0, 0)
+  }, [overlayAuth])
 
   const renderContent = () => {
     if (page === 'Dashboard') {
@@ -198,30 +215,53 @@ function App() {
 
   const alertOverlay = unreadCount > 0 ? <SosAlertOverlay count={unreadCount} onOpenSos={() => navigate('SOS Management')} /> : null
 
-  if (isMapOnlyView) {
+  const renderShell = (user: NonNullable<typeof auth.user>) => {
+    if (isMapOnlyView) {
+      return (
+        <>
+          <HazardMapPage sessionKey={auth.sessionKey ?? ''} mapOnly onMapOnlyChange={setIsMapOnlyView} />
+          {alertOverlay}
+        </>
+      )
+    }
+
     return (
       <>
-        <HazardMapPage sessionKey={auth.sessionKey ?? ''} mapOnly onMapOnlyChange={setIsMapOnlyView} />
+        <div className={`app-shell${sidebarCollapsed ? ' app-shell--collapsed' : ''}`}>
+          <div className="app-shell__bg app-shell__bg--glow" />
+          <div className="app-shell__bg app-shell__bg--grid" />
+          <Sidebar sosCount={pendingCount} activePage={page} collapsed={sidebarCollapsed} isOpen={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={navigate} onOpenProfile={openProfile} onSignOut={auth.signOut} onToggleCollapse={toggleSidebar} allowedPages={visiblePages} user={user} />
+          <main className="app-main">
+            <Topbar key={auth.sessionKey} onOpenMenu={() => setMenuOpen(true)} page={page} sessionKey={auth.sessionKey ?? ''} onOpenRecord={openHeaderRecord} />
+            <div className="app-content">{renderContent()}</div>
+          </main>
+          <footer className="app-footer"><div>© 2026 IslaSafe. All rights reserved.</div><div>Developed by <span>Four Sisters and a wedding.</span></div></footer>
+        </div>
         {alertOverlay}
+        {selectedHeaderRecord?.kind === 'resident' && <HeaderResidentDialog resident={selectedHeaderRecord} onClose={() => setHeaderTarget(null)} />}
       </>
     )
   }
 
   return (
-    <>
-      <div className={`app-shell${sidebarCollapsed ? ' app-shell--collapsed' : ''}`}>
-        <div className="app-shell__bg app-shell__bg--glow" />
-        <div className="app-shell__bg app-shell__bg--grid" />
-        <Sidebar sosCount={pendingCount} activePage={page} collapsed={sidebarCollapsed} isOpen={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={navigate} onOpenProfile={openProfile} onSignOut={auth.signOut} onToggleCollapse={toggleSidebar} allowedPages={visiblePages} user={auth.user} />
-        <main className="app-main">
-          <Topbar key={auth.sessionKey} onOpenMenu={() => setMenuOpen(true)} page={page} sessionKey={auth.sessionKey ?? ''} onOpenRecord={openHeaderRecord} />
-          <div className="app-content">{renderContent()}</div>
-        </main>
-        <footer className="app-footer">Developed by <span>Four Sisters and a Wedding</span></footer>
+    <div className="app-view">
+      {/* The stage holds the signed-in app; the login page floats above it until
+          its exit animation finishes. Both slots keep a stable position so
+          neither view remounts mid-transition. */}
+      <div className={`app-stage${enterDashboard ? ' app-stage--entering' : ''}`}>
+        {resetRequest ? null : loadingSession ? <LoadingScreen /> : authenticated && auth.user ? renderShell(auth.user) : null}
       </div>
-      {alertOverlay}
-      {selectedHeaderRecord?.kind === 'resident' && <HeaderResidentDialog resident={selectedHeaderRecord} onClose={() => setHeaderTarget(null)} />}
-    </>
+      {showAuth && (
+        <AuthPage
+          onClearReset={clearResetRequest}
+          onExitComplete={finishSignInTransition}
+          onSignIn={auth.signIn}
+          onSignInStart={beginSignIn}
+          overlay={overlayAuth}
+          resetRequest={resetRequest}
+        />
+      )}
+    </div>
   )
 }
 

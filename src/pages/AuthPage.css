@@ -176,3 +176,17 @@
   .auth-access-note { margin-top:1rem; padding-top:.75rem; }
   .auth-fineprint { margin-top:.75rem; }
 }
+
+/* --- Sign-in → dashboard hand-off ---------------------------------------- */
+.auth-page { --auth-exit-duration:560ms; --auth-exit-ease:cubic-bezier(.22,1,.36,1); }
+/* The page detaches from the document flow and fades out over the dashboard,
+   which is already mounted behind it. JS pins `--auth-exit-top` (the current
+   scroll offset) so becoming a fixed overlay never moves what is on screen;
+   `100vw` keeps the card's centring stable when mounting the dashboard adds a
+   document scrollbar. */
+.auth-page--exit { position:fixed; top:var(--auth-exit-top,0px); left:0; width:100vw; z-index:100; pointer-events:none; opacity:0; transition:opacity var(--auth-exit-duration) var(--auth-exit-ease); }
+/* The centre content slides sideways as it fades, revealing the dashboard. */
+.auth-page--exit .auth-shell { transform:translate3d(-6%,0,0); opacity:0; transition:transform var(--auth-exit-duration) var(--auth-exit-ease),opacity calc(var(--auth-exit-duration) * .8) var(--auth-exit-ease); }
+@media (prefers-reduced-motion:reduce) {
+  .auth-page--exit,.auth-page--exit .auth-shell { animation:none !important; transition:none !important; }
+}
